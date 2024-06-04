@@ -23,6 +23,20 @@ Allows all network traffic (all protocols and ports) between the nodes within th
 This rule is essential for the nodes to communicate with each other and for the proper functioning of Kubernetes networking components like the kubelet and kube-proxy.
 Master-to-Node Communication:
 
+
+gcloud projects add-iam-policy-binding [PROJECT_ID] \
+    --member="serviceAccount:gke-service-account@[PROJECT_ID].iam.gserviceaccount.com" \
+    --role="roles/container.nodeServiceAgent"
+
+gcloud projects add-iam-policy-binding [PROJECT_ID] \
+    --member="serviceAccount:gke-service-account@[PROJECT_ID].iam.gserviceaccount.com" \
+    --role="roles/logging.logWriter"
+
+gcloud projects add-iam-policy-binding [PROJECT_ID] \
+    --member="serviceAccount:gke-service-account@[PROJECT_ID].iam.gserviceaccount.com" \
+    --role="roles/monitoring.metricWriter"
+
+
 Allows traffic from the Kubernetes control plane (master) to the nodes on specific ports (e.g., TCP 443 for the Kubernetes API server, TCP 10250 for kubelet).
 This rule is necessary for the control plane to manage and monitor the nodes in the cluster.
 Node-to-Master Communication:
