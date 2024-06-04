@@ -1,0 +1,106 @@
+ Small GKE cluster without default node pool that is created when you create a GKE cluster, you can create a GKE cluster without any default node pool and then add your custom node pools. Here's how you can do it:
+
+Step-by-Step Guide to Create a GKE Cluster Without a Default Node Pool
+Step 1: Create a GKE Cluster Without Default Node Pool
+You can create a GKE cluster without a default node pool by using the --no-enable-autorepair and --no-enable-autoupgrade flags along with specifying --num-nodes=0.
+
+sh
+Copy code
+gcloud container clusters create my-cluster \
+    --zone us-central1-a \
+    --num-nodes 0 \
+    --enable-ip-alias \
+    --network my-vpc-network \
+    --subnetwork my-subnet \
+    --no-enable-autorepair \
+    --no-enable-autoupgrade \
+    --service-account gke-node-sa@my-project.iam.gserviceaccount.com
+Step 2: Create an Autoscaling Node Pool with Preemptible VMs
+After creating the cluster without a default node pool, add a new node pool with the desired configuration, including autoscaling and preemptible VMs.
+
+sh
+Copy code
+gcloud container node-pools create preemptible-node-pool \
+    --cluster my-cluster \
+    --zone us-central1-a \
+    --num-nodes 1 \
+    --machine-type n1-standard-1 \
+    --preemptible \
+    --enable-autoscaling \
+    --min-nodes 1 \
+    --max-nodes 5 \
+    --service-account gke-node-sa@my-project.iam.gserviceaccount.com
+Full Example Script
+Here's a full example script that combines both steps to create a GKE cluster without a default node pool and then adds a custom node pool with preemptible VMs.
+
+sh
+Copy code
+# Variables
+PROJECT_ID=my-project
+CLUSTER_NAME=my-cluster
+ZONE=us-central1-a
+MACHINE_TYPE=n1-standard-1
+VPC_NETWORK=my-vpc-network
+SUBNET=my-subnet
+SERVICE_ACCOUNT=gke-node-sa@$PROJECT_ID.iam.gserviceaccount.com
+MIN_NODES=1
+MAX_NODES=5
+
+# Create Service Account (if not already created)
+gcloud iam service-accounts create gke-node-sa \
+    --display-name="GKE Node Service Account"
+
+# Assign necessary IAM roles to the Service Account
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:$SERVICE_ACCOUNT" \
+    --role="roles/compute.instanceAdmin.v1"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:$SERVICE_ACCOUNT" \
+    --role="roles/container.clusterViewer"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:$SERVICE_ACCOUNT" \
+    --role="roles/logging.logWriter"
+
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:$SERVICE_ACCOUNT" \
+    --role="roles/monitoring.metricWriter"
+
+# Create the GKE cluster without a default node pool
+gcloud container clusters create $CLUSTER_NAME \
+    --zone $ZONE \
+    --num-nodes 0 \
+    --enable-ip-alias \
+    --network $VPC_NETWORK \
+    --subnetwork $SUBNET \
+    --no-enable-autorepair \
+    --no-enable-autoupgrade \
+    --service-account $SERVICE_ACCOUNT
+
+# Create an autoscaling node pool with preemptible VMs
+gcloud container node-pools create preemptible-node-pool \
+    --cluster $CLUSTER_NAME \
+    --zone $ZONE \
+    --num-nodes 1 \
+    --machine-type $MACHINE_TYPE \
+    --preemptible \
+    --enable-autoscaling \
+    --min-nodes $MIN_NODES \
+    --max-nodes $MAX_NODES \
+    --service-account $SERVICE_ACCOUNT
+Explanation
+Create the GKE Cluster Without Default Node Pool:
+
+--num-nodes 0: Ensures no default node pool is created.
+--no-enable-autorepair: Disables autorepair for the default node pool.
+--no-enable-autoupgrade: Disables autoupgrade for the default node pool.
+Create an Autoscaling Node Pool with Preemptible VMs:
+
+--preemptible: Specifies that the VMs in this node pool are preemptible.
+--enable-autoscaling: Enables autoscaling for the node pool.
+--min-nodes and --max-nodes: Sets the minimum and maximum number of nodes for the node pool.
+
+By following these steps, you can create a GKE cluster without a default node pool and then 
+add a custom node pool with autoscaling and preemptible VMs. This allows you to have more control 
+over the configuration and cost of your GKE cluster.
