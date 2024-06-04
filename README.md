@@ -36,6 +36,12 @@ gcloud projects add-iam-policy-binding [PROJECT_ID] \
     --member="serviceAccount:gke-service-account@[PROJECT_ID].iam.gserviceaccount.com" \
     --role="roles/monitoring.metricWriter"
 
+Required Roles
+roles/compute.instanceAdmin.v1: Grants permissions to manage instances.
+roles/container.clusterViewer: Provides read-only access to clusters.
+roles/logging.logWriter: Allows writing log entries.
+roles/monitoring.metricWriter: Allows writing metrics to Cloud Monitoring.
+
 
 Allows traffic from the Kubernetes control plane (master) to the nodes on specific ports (e.g., TCP 443 for the Kubernetes API server, TCP 10250 for kubelet).
 This rule is necessary for the control plane to manage and monitor the nodes in the cluster.
