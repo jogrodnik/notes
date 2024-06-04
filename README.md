@@ -11,7 +11,9 @@ gcloud iam service-accounts create example-service-account \
 gcloud iam service-accounts add-iam-policy-binding $SERVICE_ACCOUNT_EMAIL \
     --member="serviceAccount:${MEMBER_SERVICE_ACCOUNT_EMAIL}" \
     --role="roles/iam.serviceAccountUser"
-Notes 
+
+    
+Notes GKE Firewall Rules
 
 
 Automatically Created Firewall Rules
@@ -21,38 +23,22 @@ Node-to-Node Communication:
 
 Allows all network traffic (all protocols and ports) between the nodes within the cluster.
 This rule is essential for the nodes to communicate with each other and for the proper functioning of Kubernetes networking components like the kubelet and kube-proxy.
+
 Master-to-Node Communication:
-
-
-gcloud projects add-iam-policy-binding [PROJECT_ID] \
-    --member="serviceAccount:gke-service-account@[PROJECT_ID].iam.gserviceaccount.com" \
-    --role="roles/container.nodeServiceAgent"
-
-gcloud projects add-iam-policy-binding [PROJECT_ID] \
-    --member="serviceAccount:gke-service-account@[PROJECT_ID].iam.gserviceaccount.com" \
-    --role="roles/logging.logWriter"
-
-gcloud projects add-iam-policy-binding [PROJECT_ID] \
-    --member="serviceAccount:gke-service-account@[PROJECT_ID].iam.gserviceaccount.com" \
-    --role="roles/monitoring.metricWriter"
-
-Required Roles
-roles/compute.instanceAdmin.v1: Grants permissions to manage instances.
-roles/container.clusterViewer: Provides read-only access to clusters.
-roles/logging.logWriter: Allows writing log entries.
-roles/monitoring.metricWriter: Allows writing metrics to Cloud Monitoring.
-
 
 Allows traffic from the Kubernetes control plane (master) to the nodes on specific ports (e.g., TCP 443 for the Kubernetes API server, TCP 10250 for kubelet).
 This rule is necessary for the control plane to manage and monitor the nodes in the cluster.
+
 Node-to-Master Communication:
 
 Allows traffic from the nodes to the control plane on specific ports (e.g., TCP 443 for the Kubernetes API server).
 This rule is needed for the nodes to communicate with the Kubernetes API server.
+
 Health Checks:
 
 Allows traffic from the GKE control plane to the nodes for health checks.
 Ensures that the control plane can monitor the health and status of the nodes.
+
 Viewing the Automatically Created Firewall Rules
 You can view the firewall rules created for your GKE cluster using the Google Cloud Console or the gcloud command-line tool.
 
@@ -60,6 +46,7 @@ Using Google Cloud Console:
 
 Navigate to the VPC network > Firewall rules page.
 Look for firewall rules that are prefixed with the cluster name or gke-.
+
 Using gcloud Command-Line Tool:
 
 sh
