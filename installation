@@ -1,0 +1,132 @@
+Instalation
+Procedure for Setting Up Kafka KRaft Environment in Kubernetes and Basic Helm Commands
+1. Introduction
+Kubernetes is a platform for managing containerized applications, enabling automated deployment, scaling, and operations. Helm is a package manager for Kubernetes that simplifies managing Kubernetes applications through Helm charts.
+
+This guide will cover the procedure for setting up a Kafka KRaft environment in Kubernetes and basic Helm commands.
+
+2. Prerequisites
+Before you begin, ensure you have the following:
+
+A running Kubernetes cluster (minikube, GKE, EKS, AKS, etc.).
+Helm installed (version 3 or later).
+Access to a Docker image with Kafka KRaft (or the ability to build one).
+3. Setting Up Kafka KRaft Environment in Kubernetes
+Step 1: Install Kubernetes
+If you do not already have Kubernetes installed, you can use minikube for local installation:
+
+sh
+Copy code
+minikube start
+Step 2: Install Helm
+Download and install Helm:
+
+sh
+Copy code
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+Step 3: Create a Namespace
+It is recommended to create a separate namespace for Kafka:
+
+sh
+Copy code
+kubectl create namespace kafka
+Step 4: Prepare a Helm Chart for Kafka KRaft
+You can use existing Helm charts for Kafka, such as those from the Bitnami repository, but they need to be adjusted for KRaft mode. Create a values.yaml file with the following configuration as a starting point:
+
+yaml
+Copy code
+replicaCount: 3
+
+image:
+  repository: confluentinc/cp-kafka
+  tag: latest
+
+kafka:
+  brokerCount: 3
+  configurationOverrides:
+    "process.roles": "broker,controller"
+    "node.id": "1"
+    "controller.quorum.voters": "1@localhost:9093,2@localhost:9094,3@localhost:9095"
+    "listeners": "PLAINTEXT://localhost:9092,CONTROLLER://localhost:9093"
+    "log.dirs": "/var/lib/kafka/data"
+    "metadata.log.dir": "/var/lib/kafka/metadata"
+
+persistence:
+  enabled: true
+  storageClass: "standard"
+  accessModes:
+    - ReadWriteOnce
+  size: 20Gi
+Step 5: Install Kafka KRaft Using Helm
+Install Kafka KRaft using the prepared Helm chart:
+
+sh
+Copy code
+helm install my-kafka bitnami/kafka -n kafka -f values.yaml
+4. Basic Helm Commands
+4.1. Installing a Helm Chart
+To install a new Helm chart:
+
+sh
+Copy code
+helm install <release-name> <chart> -n <namespace>
+Example:
+
+sh
+Copy code
+helm install my-kafka bitnami/kafka -n kafka
+4.2. Upgrading a Helm Chart
+To upgrade an existing Helm chart:
+
+sh
+Copy code
+helm upgrade <release-name> <chart> -n <namespace> -f <values.yaml>
+Example:
+
+sh
+Copy code
+helm upgrade my-kafka bitnami/kafka -n kafka -f values.yaml
+4.3. Uninstalling a Release
+To uninstall a release:
+
+sh
+Copy code
+helm uninstall <release-name> -n <namespace>
+Example:
+
+sh
+Copy code
+helm uninstall my-kafka -n kafka
+4.4. Listing Installed Releases
+To list installed releases:
+
+sh
+Copy code
+helm list -n <namespace>
+Example:
+
+sh
+Copy code
+helm list -n kafka
+4.5. Previewing Chart Resources
+To preview the resources that will be created by a Helm chart:
+
+sh
+Copy code
+helm template <release-name> <chart> -n <namespace> -f <values.yaml>
+Example:
+
+sh
+Copy code
+helm template my-kafka bitnami/kafka -n kafka -f values.yaml
+5. Verifying the Installation
+After installing Kafka KRaft, check the status of the pods and services:
+
+sh
+Copy code
+kubectl get pods -n kafka
+kubectl get svc -n kafka
+6. Conclusion
+Setting up a Kafka KRaft environment in Kubernetes using Helm simplifies the deployment and management process. With Helm, you can easily manage the configuration and scaling of Kafka clusters, as well as integrate them with other services in the Kubernetes ecosystem.
+
+With proper configuration and management, Kafka KRaft in Kubernetes can provide a reliable and scalable platform for real-time data stream processing.
