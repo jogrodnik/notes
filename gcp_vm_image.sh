@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# Variables
+SOURCE_PROJECT="source-project-id"
+DEST_PROJECT="destination-project-id"
+IMAGE_NAME="source-image-name"
+NEW_IMAGE_NAME="new-image-name"
+BUCKET_NAME="your-bucket-name"
+EXPORT_URI="gs://${BUCKET_NAME}/${IMAGE_NAME}.tar.gz"
+USER_EMAIL=$(gcloud config get-value account)
+
+# Function to check IAM permissions
+check_permission() {
+  local PROJECT_ID=$1
+  local PERMISSION=$2
+  if ! gcloud projects get-iam-policy ${PROJECT_ID} --flatten="bindings[].members" --format="table(bindings.role)" --filter="bindings.members:${USER_EMAIL}" | grep -q ${PERMISSION}; then
+    echo "Missing permission ${PERMISSION} in project ${PROJECT_ID}"
+    exit 1
+  fi
+}
+
+# Check if the source project has the image
+echo "Checking if the image exists in the source project..."
+if ! gcloud compute images list --project ${SOURCE_PROJECT} --filter="name=${IMAGE_NAME}" --format="value(name)"; then
+  echo "Image ${IMAGE_NAME} does not exist in the project ${SOURCE_PROJECT}."
+  exit 1
+fi
+
+# Check necessary permissions in the source project
+echo "Checking IAM permissions in the source project..."
+check_permission ${SOURCE_PROJECT} "roles/compute.imageUser"
+
+# Check necessary permissions in the destination project
+echo "Checking IAM permissions in the destination project..."
+check_permission ${DEST_PROJECT} "roles/compute.imageUser"
+
+# Check necessary permissions on the Cloud Storage bucket
+echo "Checking IAM permissions on the Cloud Storage bucket..."
+check_permission ${SOURCE_PROJECT} "roles/storage.admin"
+
+# Export the image to Cloud Storage
+echo "Exporting the image from source project to Cloud Storage..."
+gcloud compute images export \
+  --destination-uri=${EXPORT_URI} \
+  --image=${IMAGE_NAME} \
+  --project=${SOURCE_PROJECT}
+
+if [[ $? -ne 0 ]]; then
+  echo "Failed to export the image."
+  exit 1
+fi
+
+# Import the image from Cloud Storage to the destination project
+echo "Importing the image to the destination project..."
+gcloud compute images create ${NEW_IMAGE_NAME} \
+  --source-uri=${EXPORT_URI} \
+  --project=${DEST_PROJECT}
+
+if [[ $? -ne 0 ]]; then
+  echo "Failed to import the image."
+  exit 1
+fi
+
+echo "Image copied successfully from ${SOURCE_PROJECT} to ${DEST_PROJECT}."
+
+# Cleanup: Optionally remove the exported image from the Cloud Storage bucket
+# gsutil rm ${EXPORT_URI}
