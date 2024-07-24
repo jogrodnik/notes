@@ -191,3 +191,6 @@ Kubernetes supports several types of secrets, each designed for different use ca
    ```
 
 Each type of secret is designed to handle specific types of sensitive information, making it easier to manage and secure your credentials, tokens, and keys within a Kubernetes environment.
+
+![image](https://github.com/user-attachments/assets/656cd831-37cd-43a1-b5fe-7d5eb4df3868)
+
