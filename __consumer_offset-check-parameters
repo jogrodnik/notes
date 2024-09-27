@@ -1,0 +1,31 @@
+To check the current effective configuration of the __consumer_offsets topic in Apache Kafka, you can use Kafka’s administrative tools. Specifically, you will need to use the kafka-configs.sh and kafka-topics.sh scripts to retrieve both the topic-level configuration and broker-level defaults.
+
+1. Check Topic Configuration with kafka-configs.sh
+To get the current configuration of the __consumer_offsets topic, use the following command:
+
+bash
+Copy code
+kafka-configs.sh --bootstrap-server <broker-address> --entity-type topics --entity-name __consumer_offsets --describe
+This command will list the configuration settings specifically applied to the __consumer_offsets topic, including retention, compaction settings, and other topic-specific properties.
+
+2. Check Topic Description with kafka-topics.sh
+To get more details about the topic, such as the number of partitions, replication factor, and other basic configurations, you can use:
+
+bash
+Copy code
+kafka-topics.sh --describe --topic __consumer_offsets --bootstrap-server <broker-address>
+This will display information like:
+
+Number of partitions
+Replication factor
+Partition assignments
+3. Check Broker-Level Configuration for __consumer_offsets
+If there are no topic-specific overrides, Kafka will use the broker’s default configurations. To check these, you would need to either look at your broker configuration file (server.properties) or use a similar command if you are managing Kafka via a management tool (e.g., Kafka Manager).
+
+Key Parameters to Review:
+offsets.retention.minutes: How long offsets are retained.
+log.segment.bytes: Size of each log segment for the topic.
+log.cleaner.min.cleanable.ratio: The ratio that determines when to start log compaction.
+log.retention.hours: How long the log data is retained.
+log.cleaner.enable: Whether log compaction is enabled.
+Using these commands, you can review both the topic-level and broker-level configurations currently in effect for the __consumer_offsets topic.
