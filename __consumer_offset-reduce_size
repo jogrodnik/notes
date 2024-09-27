@@ -1,0 +1,47 @@
+To reduce the size of the __consumer_offsets topic from 100 GB to around 10 GB, you need to adjust several configuration parameters related to retention, log compaction, and the frequency of committing offsets. Since you’re operating with default settings, follow these steps to optimize your Kafka configuration:
+
+1. Adjust Offset Retention Period
+By default, Kafka retains offsets for 7 days (offsets.retention.minutes=10080). To reduce the size, you can shorten the retention period to keep less data.
+
+Recommendation:
+
+Set offsets.retention.minutes to a smaller value, such as 1 day (1440 minutes), in the broker configuration file:
+properties
+Copy code
+offsets.retention.minutes=1440
+2. Reduce Log Segment Size
+Reducing the size of log segments will trigger more frequent log cleaning and compaction, helping to keep the topic size under control.
+
+Recommendation:
+
+Reduce log.segment.bytes for the __consumer_offsets topic to a smaller size, such as 50 MB (default is 1 GB):
+properties
+Copy code
+log.segment.bytes=52428800
+3. Increase Log Compaction Frequency
+More frequent compaction will clean up old data and shrink the size of the __consumer_offsets topic more aggressively.
+
+Recommendation:
+
+Decrease the log.cleaner.min.cleanable.ratio to 0.1 or 0.2, so that Kafka starts compaction sooner:
+properties
+Copy code
+log.cleaner.min.cleanable.ratio=0.1
+Increase log compaction throughput by adjusting these parameters:
+properties
+Copy code
+log.cleaner.threads=4
+log.cleaner.io.max.bytes.per.second=10MB
+4. Increase Offset Commit Interval
+Reducing how frequently consumers commit offsets can help reduce the data written to the __consumer_offsets topic, lowering its size.
+
+Recommendation:
+
+Increase the offset commit interval for consumers to 60 seconds:
+properties
+Copy code
+auto.commit.interval.ms=60000
+5. Monitor and Clean Up Historical Data
+After applying these changes, monitor the topic size to ensure it shrinks to your target size of 10 GB. If needed, continue fine-tuning retention and compaction settings.
+
+These adjustments should help reduce the size of the __consumer_offsets topic from 100 GB to around 10 GB. After implementing them, regularly monitor the topic size to confirm the changes are effective.
