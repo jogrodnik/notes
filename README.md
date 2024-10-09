@@ -35,6 +35,32 @@ resource "aws_instance" "example" {
   }
 }
 
+
+
+
+# my_module/variables.tf
+variable "example_var" {
+  type = map(object({
+    required_attr = string
+    optional_attr = string  # Optional by providing default logic in locals
+  }))
+}
+
+# my_module/main.tf
+locals {
+  # Set a default for the optional attribute if not provided
+  processed_map = {
+    for key, value in var.example_var : key => merge(
+      { optional_attr = "default_value" },  # Default for the optional attribute
+      value
+    )
+  }
+}
+
+output "processed_map_output" {
+  value = local.processed_map
+}
+
 # Output the processed VM configuration
 output "processed_vm_config" {
   value = local.processed_vms
