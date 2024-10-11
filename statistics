@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Define namespaces
+namespaces=("n1" "n2" "n3" "n4" "n5" "n6")
+
+# Print report header
+echo "Namespace   |   Total CPU (millicores)   |   Total Memory (MiB)"
+echo "---------------------------------------------------------------"
+
+# Iterate over each namespace
+for ns in "${namespaces[@]}"; do
+    echo "Processing namespace: $ns"
+
+    # Get the list of pod CPU and memory usage in the namespace
+    pod_usage=$(kubectl top pods -n "$ns")
+
+    # Initialize totals for CPU and memory
+    total_cpu=0
+    total_memory=0
+
+    # Skip the header (first line) and process each pod
+    while read -r line; do
+        # Extract CPU (millicores) and memory (MiB/KiB)
+        pod_cpu=$(echo "$line" | cut -d' ' -f2 | sed 's/m//')
+        pod_memory=$(echo "$line" | cut -d' ' -f3)
+
+        # Add to the total CPU
+        total_cpu=$((total_cpu + pod_cpu))
+
+        # If memory is in Ki, convert it to MiB, otherwise just add the MiB
+        if [[ $pod_memory == *Ki ]]; then
+            memory_in_mib=$(echo "${pod_memory%Ki}" | sed 's/Ki//' | bc -l)
+            total_memory=$(echo "$total_memory + $memory_in_mib / 1024" | bc)
+        else
+            memory_in_mib=$(echo "${pod_memory%Mi}")
+            total_memory=$(echo "$total_memory + $memory_in_mib" | bc)
+        fi
+    done <<< "$(echo "$pod_usage" | tail -n +2)" # Skip the header line
+
+    # Print total CPU and memory for the namespace
+    echo "$ns          | ${total_cpu}m              | ${total_memory} MiB"
+    echo "---------------------------------------------------------------"
+done
+
+echo "Report Generation Complete"
