@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# Print table header
+printf "%-20s %-20s %-20s\n" "Namespace" "Total CPU (millicores)" "Total Memory (Mi)"
+printf "%-20s %-20s %-20s\n" "--------------------" "--------------------" "--------------------"
+
+# Get all namespaces
+namespaces=$(kubectl get namespaces --no-headers | cut -d ' ' -f 1)
+
+# Iterate through each namespace
+for namespace in $namespaces; do
+
+  # Get all pods in the namespace with resource requests (CPU and memory)
+  kubectl get pods --namespace $namespace -o json | jq -r '.items[] | .metadata.name as $name | .spec.containers[] | "\($name) \(.resources.requests.cpu // "0") \(.resources.requests.memory // "0")"' > /tmp/resources.txt
+
+  # Initialize total CPU (in millicores) and total memory (in Mi)
+  total_cpu=0
+  total_memory=0
+
+  # Process each line from the temporary file
+  while read -r line; do
+    pod_name=$(echo $line | cut -d ' ' -f 1)
+    cpu=$(echo $line | cut -d ' ' -f 2)
+    memory=$(echo $line | cut -d ' ' -f 3)
+
+    # Convert CPU (millicores)
+    if [[ $cpu == *m ]]; then
+      cpu_value=${cpu%m}  # Already in millicores
+    else
+      cpu_value=$((cpu * 1000))  # Convert cores to millicores
+    fi
+    total_cpu=$((total_cpu + cpu_value))
+
+    # Convert memory (Mi)
+    if [[ $memory == *Ki ]]; then
+      memory_value=$((${memory%Ki} / 1024))  # Convert Ki to Mi
+    elif [[ $memory == *Mi ]]; then
+      memory_value=${memory%Mi}  # Already in Mi
+    elif [[ $memory == *Gi ]]; then
+      memory_value=$((${memory%Gi} * 1024))  # Convert Gi to Mi
+    else
+      memory_value=0  # Default for unknown or missing values
+    fi
+    total_memory=$((total_memory + memory_value))
+  done < /tmp/resources.txt
+
+  # Print the results as a row in the table
+  printf "%-20s %-20s %-20s\n" "$namespace" "$total_cpu" "$total_memory"
+
+done
