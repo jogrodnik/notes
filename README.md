@@ -1,3 +1,12 @@
+If you're using Google BigQuery, for a Service Account to be able to read data from a view, you should assign at least the following roles:
+
+BigQuery Data Viewer (roles/bigquery.dataViewer): This is a basic role that allows reading data in tables and views.
+BigQuery Job User (roles/bigquery.jobUser): This allows running queries in BigQuery, which may be necessary if the view requires running an additional query.
+Optionally, you can also assign the role BigQuery Read Session User (roles/bigquery.readSessionUser) if you're using the BigQuery Storage API.
+
+
+
+
 # my_module/variables.tf
 variable "vm_configurations" {
   type = map(object({
