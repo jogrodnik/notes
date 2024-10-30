@@ -1,1 +1,12 @@
+ACCESS_TOKEN="your-saved-oauth-token"
+
+curl -H "Authorization: Bearer $ACCESS_TOKEN" \
+    "https://storage.googleapis.com/storage/v1/b/your-bucket-name/o"
+
+
+export CLOUDSDK_AUTH_ACCESS_TOKEN="your-saved-oauth-token"
+gsutil ls gs://your-bucket-name
+
+
+cloud auth application-default revoke —c lears the application default credentials, which are often used in code or scripts that rely on Application Default Credentials (ADC).
 
