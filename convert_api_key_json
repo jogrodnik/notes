@@ -1,1 +1,35 @@
+generate_and_authenticate_key() {
+    local service_account=$1
+    local access_token=$2
+    local project_id=$3
+    local key_file_path="/tmp/${service_account}_key.json"
+
+    # Step 1: Generate the key using IAM API
+    local create_key_url="https://iam.googleapis.com/v1/projects/$project_id/serviceAccounts/$service_account/keys"
+    
+    # Make the API request
+    local response=$(curl -s -X POST "$create_key_url" \
+        -H "Authorization: Bearer $access_token" \
+        -H "Content-Type: application/json" \
+        -d '{"privateKeyType": "TYPE_GOOGLE_CREDENTIALS_FILE"}')
+
+    # Step 2: Decode the privateKeyData from the response
+    local decoded_key=$(echo "$response" | jq -r '.privateKeyData' | base64 --decode)
+
+    # Check if the key was decoded successfully
+    if [ -z "$decoded_key" ]; then
+        log_message "Failed to generate key in the correct format."
+        return 1
+    fi
+
+    # Save the decoded key to a JSON file
+    echo "$decoded_key" > "$key_file_path"
+    log_message "Key created successfully for $service_account and saved to $key_file_path"
+
+    # Step 3: Authenticate with gcloud using the generated key
+    gcloud auth activate-service-account "$service_account" --key-file="$key_file_path" --project="$project_id"
+    
+    # Clean up the generated key file
+    rm "$key_file_path"
+}
 
