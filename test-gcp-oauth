@@ -10,3 +10,6 @@ gsutil ls gs://your-bucket-name
 
 cloud auth application-default revoke —c lears the application default credentials, which are often used in code or scripts that rely on Application Default Credentials (ADC).
 
+gcloud auth revoke --all, it will remove all active credentials from your gcloud environment, which means gcloud commands like gsutil will no longer have access to the OAuth tokens. 
+However, if you have previously saved an access token to use independently (e.g., by storing it in a variable or passing it as an environment variable), you can still use that token 
+directly to access Google Cloud Storage until it expires.
