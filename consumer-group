@@ -1,0 +1,1 @@
+kafka-consumer-groups.sh --bootstrap-server <broker-address> --all-groups --describe | grep -E 'Empty|Dead|NO_ACTIVE_MEMBER'
