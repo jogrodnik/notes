@@ -1,3 +1,5 @@
+Most cloud providers allocate resources in terms of virtual CPUs (vCPUs), which are units of CPU cores in virtualized environments. This allocation affects how much CPU time your application can consume.
+
 ### Description of Configuring a Kubernetes Namespace
 
 Configuring a Kubernetes namespace involves several steps, each of which ensures the namespace is set up correctly for your applications and services. Below is a comprehensive description of the configuration process, including creating a namespace, setting up resource quotas and limits, and configuring access control with service accounts and secrets.
