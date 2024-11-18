@@ -1,0 +1,120 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Define Classes and Singleton') {
+            steps {
+                script {
+                    // Define M1Class with two fields: c1 and c2
+                    class M1Class {
+                        String c1
+                        String c2
+
+                        M1Class(String c1, String c2) {
+                            this.c1 = c1
+                            this.c2 = c2
+                        }
+
+                        @Override
+                        String toString() {
+                            return "M1Class(c1: ${c1}, c2: ${c2})"
+                        }
+                    }
+
+                    // Define Singleton class to manage a synchronized List of M1Class objects
+                    class ListSingleton {
+                        // Static instance of the Singleton class
+                        private static ListSingleton instance = null
+
+                        // Synchronized list to hold M1Class objects (thread-safe)
+                        private List<M1Class> list = Collections.synchronizedList([])
+
+                        // Private constructor to prevent direct instantiation
+                        private ListSingleton() {}
+
+                        // Method to get the Singleton instance
+                        static synchronized ListSingleton getInstance() {
+                            if (instance == null) {
+                                instance = new ListSingleton()
+                            }
+                            return instance
+                        }
+
+                        // Method to add an M1Class object to the list
+                        synchronized void add(M1Class value) {
+                            list << value
+                        }
+
+                        // Method to retrieve an M1Class object by index
+                        synchronized M1Class get(int index) {
+                            if (index >= 0 && index < list.size()) {
+                                return list[index]
+                            }
+                            return null
+                        }
+
+                        // Method to iterate through the list and display elements
+                        synchronized void displayList() {
+                            echo "Displaying list of M1Class objects:"
+                            list.eachWithIndex { value, index ->
+                                echo "Index ${index} -> ${value}"
+                            }
+                        }
+
+                        // Method to get the size of the list
+                        synchronized int size() {
+                            return list.size()
+                        }
+                    }
+
+                    echo "Classes and Singleton defined."
+                }
+            }
+        }
+
+        stage('Initialize and Access in Parallel') {
+            parallel {
+                stage('Parallel Step 1') {
+                    steps {
+                        script {
+                            def singleton = ListSingleton.getInstance()
+                            singleton.add(new M1Class('Step1C1', 'Step1C2'))
+                            echo "Parallel Step 1 added an element."
+                            singleton.displayList()
+                        }
+                    }
+                }
+                stage('Parallel Step 2') {
+                    steps {
+                        script {
+                            def singleton = ListSingleton.getInstance()
+                            singleton.add(new M1Class('Step2C1', 'Step2C2'))
+                            echo "Parallel Step 2 added an element."
+                            singleton.displayList()
+                        }
+                    }
+                }
+                stage('Parallel Step 3') {
+                    steps {
+                        script {
+                            def singleton = ListSingleton.getInstance()
+                            singleton.add(new M1Class('Step3C1', 'Step3C2'))
+                            echo "Parallel Step 3 added an element."
+                            singleton.displayList()
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Display Final List') {
+            steps {
+                script {
+                    def singleton = ListSingleton.getInstance()
+                    echo "Displaying final list after parallel execution:"
+                    singleton.displayList()
+                }
+            }
+        }
+    }
+}
