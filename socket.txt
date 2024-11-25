@@ -80,3 +80,45 @@ function tcp_state(state_hex) {
     state_desc = tcp_state(state_hex)
     printf "Local: %s:%d, Remote: %s:%d, State: %s (%s)\n", local_ip, local_port, remote_ip, remote_port, state_hex, state_desc
 }'
+
+# without strtonum
+
+cat /proc/net/tcp | tail -n +2 | awk '
+function hex2ip(hex) {
+    return sprintf("%d.%d.%d.%d", \
+        ("0x" substr(hex, 7, 2)) + 0, \
+        ("0x" substr(hex, 5, 2)) + 0, \
+        ("0x" substr(hex, 3, 2)) + 0, \
+        ("0x" substr(hex, 1, 2)) + 0)
+}
+
+function hex2port(hex) {
+    return ("0x" hex) + 0
+}
+
+function tcp_state(state_hex) {
+    states["01"] = "ESTABLISHED"
+    states["02"] = "SYN_SENT"
+    states["03"] = "SYN_RECV"
+    states["04"] = "FIN_WAIT1"
+    states["05"] = "FIN_WAIT2"
+    states["06"] = "TIME_WAIT"
+    states["07"] = "CLOSE"
+    states["08"] = "CLOSE_WAIT"
+    states["09"] = "LAST_ACK"
+    states["0A"] = "LISTEN"
+    states["0B"] = "CLOSING"
+    return (state_hex in states) ? states[state_hex] : "UNKNOWN"
+}
+
+{
+    local_ip = hex2ip(substr($2, 1, 8))
+    local_port = hex2port(substr($2, 10, 4))
+    remote_ip = hex2ip(substr($3, 1, 8))
+    remote_port = hex2port(substr($3, 10, 4))
+    state_hex = $4
+    state_desc = tcp_state(state_hex)
+    inode = $(NF-1)  # The inode is the second-to-last column
+    printf "Local: %s:%d, Remote: %s:%d, State: %s (%s), Inode: %s\n", \
+        local_ip, local_port, remote_ip, remote_port, state_hex, state_desc, inode
+}'
