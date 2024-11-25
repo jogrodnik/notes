@@ -1,0 +1,82 @@
+#!/bin/bash
+# Usage: ./find_socket_process.sh <socket_inode>
+
+# lsof -i -nP | grep 8080
+# ps -p 1234 -o pid,comm,args
+
+if [ -z "$1" ]; then
+    echo "Usage: $0 <socket_inode>"
+    exit 1
+fi
+
+SOCKET_INODE=$1
+PROCESS_INFO=$(find /proc/*/fd -lname "socket:[$SOCKET_INODE]" 2>/dev/null)
+
+if [ -z "$PROCESS_INFO" ]; then
+    echo "No process found for socket inode $SOCKET_INODE."
+else
+    for FD in $PROCESS_INFO; do
+        PID=$(echo "$FD" | awk -F'/' '{print $3}')
+        FD_NUM=$(basename "$FD")  # Extract the file descriptor number
+        CMD=$(ps -p $PID -o comm=)
+        ARGS=$(ps -p $PID -o args=)
+        echo "Socket inode $SOCKET_INODE is used by:"
+        echo "  PID: $PID"
+        echo "  File Descriptor: $FD_NUM"
+        echo "  Command: $CMD"
+        echo "  Args: $ARGS"
+    done
+fi
+
+# Mapping of TCP State Codes
+# Hex Code	State	Description
+# 01	ESTABLISHED	Active open connection.
+# 02	SYN_SENT	Connection request sent; awaiting acknowledgment.
+# 03	SYN_RECV	Connection request received; awaiting acknowledgment.
+# 04	FIN_WAIT1	Connection is closing; FIN sent.
+# 05	FIN_WAIT2	Connection is closing; FIN acknowledged.
+# 06	TIME_WAIT	Connection closed; waiting for remaining packets to expire.
+# 07	CLOSE	Connection closed, no further communication.
+# 08	CLOSE_WAIT	Waiting for close request from the local application.
+# 09	LAST_ACK	Waiting for acknowledgment of last FIN.
+# 0A	LISTEN	Listening for incoming connections.
+# 0B	CLOSING	Connection is closing; both sides have sent FIN.
+
+cat /proc/net/tcp | tail -n +2 | awk '
+function hex2ip(hex) {
+    return sprintf("%d.%d.%d.%d", \
+        strtonum("0x" substr(hex, 7, 2)), \
+        strtonum("0x" substr(hex, 5, 2)), \
+        strtonum("0x" substr(hex, 3, 2)), \
+        strtonum("0x" substr(hex, 1, 2)))
+}
+
+function hex2port(hex) {
+    return strtonum("0x" hex)
+}
+
+function tcp_state(state_hex) {
+    # Map of hex codes to state names
+    states["01"] = "ESTABLISHED"
+    states["02"] = "SYN_SENT"
+    states["03"] = "SYN_RECV"
+    states["04"] = "FIN_WAIT1"
+    states["05"] = "FIN_WAIT2"
+    states["06"] = "TIME_WAIT"
+    states["07"] = "CLOSE"
+    states["08"] = "CLOSE_WAIT"
+    states["09"] = "LAST_ACK"
+    states["0A"] = "LISTEN"
+    states["0B"] = "CLOSING"
+    return (state_hex in states) ? states[state_hex] : "UNKNOWN"
+}
+
+{
+    local_ip = hex2ip(substr($2, 1, 8))
+    local_port = hex2port(substr($2, 10, 4))
+    remote_ip = hex2ip(substr($3, 1, 8))
+    remote_port = hex2port(substr($3, 10, 4))
+    state_hex = $4
+    state_desc = tcp_state(state_hex)
+    printf "Local: %s:%d, Remote: %s:%d, State: %s (%s)\n", local_ip, local_port, remote_ip, remote_port, state_hex, state_desc
+}'
