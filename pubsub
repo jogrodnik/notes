@@ -1,3 +1,9 @@
+cat /proc/net/tcp | tail -n +2 | awk '{printf "Local: %s:%d, Remote: %s:%d, State: %s\n", \
+  strtonum("0x" substr($2,1,8)), strtonum("0x" substr($2,10,4)), \
+  strtonum("0x" substr($3,1,8)), strtonum("0x" substr($3,10,4)), $4}'
+
+
+
 1. Pub/Sub Client Initialization
 gRPC Channels: Google Pub/Sub clients (e.g., Python, Java, Go) use gRPC channels for communication. Creating these channels can be resource-intensive, so it's advisable to reuse clients rather than creating them repeatedly.
 Thread-Safe Clients: Pub/Sub clients are thread-safe and designed for reuse. For optimal performance:
