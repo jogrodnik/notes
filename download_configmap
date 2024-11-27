@@ -1,1 +1,74 @@
+#!/bin/bash
+
+# Exit immediately if a command exits with a non-zero status
+set -e
+
+# Function to print usage information
+usage() {
+  echo "Usage: $0 <configmap-name> [namespace] [output-directory]"
+  echo "  <configmap-name>: Name of the ConfigMap to download"
+  echo "  [namespace]: Namespace of the ConfigMap (default: 'default')"
+  echo "  [output-directory]: Directory to save ConfigMap files (default: './configmap-output')"
+  exit 1
+}
+
+# Validate arguments
+if [[ $# -lt 1 ]]; then
+  usage
+fi
+
+# Input arguments
+CONFIGMAP_NAME=$1
+NAMESPACE=${2:-default}
+OUTPUT_DIR=${3:-./configmap-output}
+
+# Ensure jq is installed
+if ! command -v jq &> /dev/null; then
+  echo "Error: 'jq' is required but not installed. Please install jq and retry."
+  exit 1
+fi
+
+# Ensure kubectl is configured
+if ! command -v kubectl &> /dev/null; then
+  echo "Error: 'kubectl' is required but not installed. Please install kubectl and retry."
+  exit 1
+fi
+
+# Create output directory
+mkdir -p "$OUTPUT_DIR"
+
+# Fetch the ConfigMap as JSON
+echo "Fetching ConfigMap '$CONFIGMAP_NAME' from namespace '$NAMESPACE'..."
+CONFIGMAP_JSON=$(kubectl get configmap "$CONFIGMAP_NAME" --namespace "$NAMESPACE" -o json 2>/dev/null || {
+  echo "Error: Unable to fetch ConfigMap '$CONFIGMAP_NAME' in namespace '$NAMESPACE'."
+  exit 1
+})
+
+# Process 'data' field
+if echo "$CONFIGMAP_JSON" | jq -e '.data' &>/dev/null; then
+  echo "Processing 'data' field..."
+  echo "$CONFIGMAP_JSON" | jq -r '.data | to_entries[] | .key as $key | .value as $value | [$key, $value]' | while read -r line; do
+    key=$(echo "$line" | jq -r '.[0]')
+    value=$(echo "$line" | jq -r '.[1]')
+    echo "$value" > "$OUTPUT_DIR/$key"
+    echo "Saved: $OUTPUT_DIR/$key"
+  done
+else
+  echo "No 'data' field found in ConfigMap."
+fi
+
+# Process 'binaryData' field
+if echo "$CONFIGMAP_JSON" | jq -e '.binaryData' &>/dev/null; then
+  echo "Processing 'binaryData' field..."
+  echo "$CONFIGMAP_JSON" | jq -r '.binaryData | to_entries[] | .key as $key | .value as $value | [$key, $value]' | while read -r line; do
+    key=$(echo "$line" | jq -r '.[0]')
+    value=$(echo "$line" | jq -r '.[1]')
+    echo "$value" | base64 --decode > "$OUTPUT_DIR/$key"
+    echo "Saved (decoded): $OUTPUT_DIR/$key"
+  done
+else
+  echo "No 'binaryData' field found in ConfigMap."
+fi
+
+echo "ConfigMap '$CONFIGMAP_NAME' has been successfully downloaded to '$OUTPUT_DIR'."
 
