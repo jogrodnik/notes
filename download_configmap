@@ -47,9 +47,7 @@ CONFIGMAP_JSON=$(kubectl get configmap "$CONFIGMAP_NAME" --namespace "$NAMESPACE
 # Process 'data' field
 if echo "$CONFIGMAP_JSON" | jq -e '.data' &>/dev/null; then
   echo "Processing 'data' field..."
-  echo "$CONFIGMAP_JSON" | jq -r '.data | to_entries[] | .key as $key | .value as $value | [$key, $value]' | while read -r line; do
-    key=$(echo "$line" | jq -r '.[0]')
-    value=$(echo "$line" | jq -r '.[1]')
+  echo "$CONFIGMAP_JSON" | jq -r '.data | to_entries[] | [.key, .value] | @tsv' | while IFS=$'\t' read -r key value; do
     echo "$value" > "$OUTPUT_DIR/$key"
     echo "Saved: $OUTPUT_DIR/$key"
   done
@@ -60,10 +58,8 @@ fi
 # Process 'binaryData' field
 if echo "$CONFIGMAP_JSON" | jq -e '.binaryData' &>/dev/null; then
   echo "Processing 'binaryData' field..."
-  echo "$CONFIGMAP_JSON" | jq -r '.binaryData | to_entries[] | .key as $key | .value as $value | [$key, $value]' | while read -r line; do
-    key=$(echo "$line" | jq -r '.[0]')
-    value=$(echo "$line" | jq -r '.[1]')
-    echo "$value" | base64 --decode > "$OUTPUT_DIR/$key"
+  echo "$CONFIGMAP_JSON" | jq -r '.binaryData | to_entries[] | [.key, (.value | @base64d)] | @tsv' | while IFS=$'\t' read -r key value; do
+    echo "$value" > "$OUTPUT_DIR/$key"
     echo "Saved (decoded): $OUTPUT_DIR/$key"
   done
 else
@@ -71,4 +67,3 @@ else
 fi
 
 echo "ConfigMap '$CONFIGMAP_NAME' has been successfully downloaded to '$OUTPUT_DIR'."
-
