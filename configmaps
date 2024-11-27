@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# ConfigMap name
+CONFIGMAP_NAME="your-configmap-name"
+NAMESPACE="default"
+FILES_DIR="/path/to/files"  # Directory containing files
+
+# Check if the directory exists
+if [[ ! -d "$FILES_DIR" ]]; then
+  echo "Directory '$FILES_DIR' does not exist. Exiting."
+  exit 1
+fi
+
+# Initialize the binaryData JSON patch
+PATCH_DATA="{\"binaryData\":{"
+
+# Iterate over all files in the directory
+for file in "$FILES_DIR"/*; do
+  # Extract the file name (key for binaryData)
+  key=$(basename "$file")
+
+  # Check if the file exists and is not empty
+  if [[ ! -f "$file" || ! -s "$file" ]]; then
+    echo "Skipping '$file': File not found or empty."
+    continue
+  fi
+
+  # Encode the file content to base64
+  encoded_value=$(base64 -w 0 "$file")
+
+  # Append to the patch JSON
+  PATCH_DATA+="\"$key\":\"$encoded_value\","
+done
+
+# Remove the trailing comma and close the JSON
+PATCH_DATA=${PATCH_DATA%,}"}"
+
+# Apply the patch to the ConfigMap
+kubectl patch configmap "$CONFIGMAP_NAME" --namespace "$NAMESPACE" --type=merge -p "$PATCH_DATA"
+
+# Print confirmation
+if [ $? -eq 0 ]; then
+  echo "ConfigMap '$CONFIGMAP_NAME' updated successfully with files from '$FILES_DIR'."
+else
+  echo "Failed to update ConfigMap '$CONFIGMAP_NAME'."
+fi
