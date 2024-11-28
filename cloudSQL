@@ -1,0 +1,8 @@
+CloudSQL
+
+If privateNetwork is Omitted, and ipv4_enabled is false
+
+If you omit both privateNetwork and set ipv4_enabled = false, the instance will not have any IP address (neither public nor private). 
+This is typically used for proxy-only instances where connectivity is handled through the Cloud SQL Proxy.
+
+
