@@ -51,7 +51,88 @@ function hex2ip(hex) {
         strtonum("0x" substr(hex, 1, 2)))
 }
 
-function hex2port(hex) {
+function hex2port(hex) {#!/bin/bash
+
+# Function to check if a port is in ESTABLISHED state and retr != 0
+check_port_state() {
+    local port=$1  # The port to check (decimal format)
+
+    # Convert port to hexadecimal (uppercase for consistency in /proc/net/tcp)
+    local port_hex=$(printf '%04X' "$port")
+
+    # Read /proc/net/tcp, filter by port and state, and check retr
+    local result=$(awk -v port=":$port_hex" '
+        $2 ~ port && $4 == "01" && $7 != "00000000" {
+            print $0
+        }
+    ' /proc/net/tcp)
+
+    if [[ -n "$result" ]]; then
+        echo "Port $port is in ESTABLISHED state with retr != 0"
+        return 0
+    else
+        echo "Port $port is not in ESTABLISHED state or retr == 0"
+        return 1
+    fi
+}
+
+# Example usage
+check_port_state 8080
+#!/bin/bash
+
+# Function to check if a port is in ESTABLISHED state and retr != 0
+check_port_state() {
+    local port=$1  # The port to check (decimal format)
+
+    # Convert port to hexadecimal (uppercase for consistency in /proc/net/tcp)
+    local port_hex=$(printf '%04X' "$port")
+
+    # Read /proc/net/tcp, filter by port and state, and check retr
+    local result=$(awk -v port=":$port_hex" '
+        $2 ~ port && $4 == "01" && $7 != "00000000" {
+            print $0
+        }
+    ' /proc/net/tcp)
+
+    if [[ -n "$result" ]]; then
+        echo "Port $port is in ESTABLISHED state with retr != 0"
+        return 0
+    else
+        echo "Port $port is not in ESTABLISHED state or retr == 0"
+        return 1
+    fi
+}
+
+# Example usage
+check_port_state 8080
+#!/bin/bash
+
+# Function to check if a port is in ESTABLISHED state and retr != 0
+check_port_state() {
+    local port=$1  # The port to check (decimal format)
+
+    # Convert port to hexadecimal (uppercase for consistency in /proc/net/tcp)
+    local port_hex=$(printf '%04X' "$port")
+
+    # Read /proc/net/tcp, filter by port and state, and check retr
+    local result=$(awk -v port=":$port_hex" '
+        $2 ~ port && $4 == "01" && $7 != "00000000" {
+            print $0
+        }
+    ' /proc/net/tcp)
+
+    if [[ -n "$result" ]]; then
+        echo "Port $port is in ESTABLISHED state with retr != 0"
+        return 0
+    else
+        echo "Port $port is not in ESTABLISHED state or retr == 0"
+        return 1
+    fi
+}
+
+# Example usage
+check_port_state 8080
+
     return strtonum("0x" hex)
 }
 
@@ -65,7 +146,34 @@ function tcp_state(state_hex) {
     states["06"] = "TIME_WAIT"
     states["07"] = "CLOSE"
     states["08"] = "CLOSE_WAIT"
-    states["09"] = "LAST_ACK"
+    states["09"] = "LAST#!/bin/bash
+
+# Function to check if a port is in ESTABLISHED state and retr != 0
+check_port_state() {
+    local port=$1  # The port to check (decimal format)
+
+    # Convert port to hexadecimal (uppercase for consistency in /proc/net/tcp)
+    local port_hex=$(printf '%04X' "$port")
+
+    # Read /proc/net/tcp, filter by port and state, and check retr
+    local result=$(awk -v port=":$port_hex" '
+        $2 ~ port && $4 == "01" && $7 != "00000000" {
+            print $0
+        }
+    ' /proc/net/tcp)
+
+    if [[ -n "$result" ]]; then
+        echo "Port $port is in ESTABLISHED state with retr != 0"
+        return 0
+    else
+        echo "Port $port is not in ESTABLISHED state or retr == 0"
+        return 1
+    fi
+}
+
+# Example usage
+check_port_state 8080
+_ACK"
     states["0A"] = "LISTEN"
     states["0B"] = "CLOSING"
     return (state_hex in states) ? states[state_hex] : "UNKNOWN"
@@ -83,7 +191,88 @@ function tcp_state(state_hex) {
 
 # without strtonum
 
-cat /proc/net/tcp | tail -n +2 | awk '
+cat /proc/net/tcp | tail #!/bin/bash
+
+# Function to check if a port is in ESTABLISHED state and retr != 0
+check_port_state() {
+    local port=$1  # The port to check (decimal format)
+
+    # Convert port to hexadecimal (uppercase for consistency in /proc/net/tcp)
+    local port_hex=$(printf '%04X' "$port")
+
+    # Read /proc/net/tcp, filter by port and state, and check retr
+    local result=$(awk -v port=":$port_hex" '
+        $2 ~ port && $4 == "01" && $7 != "00000000" {
+            print $0
+        }
+    ' /proc/net/tcp)
+
+    if [[ -n "$result" ]]; then
+        echo "Port $port is in ESTABLISHED state with retr != 0"
+        return 0
+    else
+        echo "Port $port is not in ESTABLISHED state or retr == 0"
+        return 1
+    fi
+}
+
+# Example usage
+check_port_state 8080
+#!/bin/bash
+
+# Function to check if a port is in ESTABLISHED state and retr != 0
+check_port_state() {
+    local port=$1  # The port to check (decimal format)
+
+    # Convert port to hexadecimal (uppercase for consistency in /proc/net/tcp)
+    local port_hex=$(printf '%04X' "$port")
+
+    # Read /proc/net/tcp, filter by port and state, and check retr
+    local result=$(awk -v port=":$port_hex" '
+        $2 ~ port && $4 == "01" && $7 != "00000000" {
+            print $0
+        }
+    ' /proc/net/tcp)
+
+    if [[ -n "$result" ]]; then
+        echo "Port $port is in ESTABLISHED state with retr != 0"
+        return 0
+    else
+        echo "Port $port is not in ESTABLISHED state or retr == 0"
+        return 1
+    fi
+}
+
+# Example usage
+check_port_state 8080
+#!/bin/bash
+
+# Function to check if a port is in ESTABLISHED state and retr != 0
+check_port_state() {
+    local port=$1  # The port to check (decimal format)
+
+    # Convert port to hexadecimal (uppercase for consistency in /proc/net/tcp)
+    local port_hex=$(printf '%04X' "$port")
+
+    # Read /proc/net/tcp, filter by port and state, and check retr
+    local result=$(awk -v port=":$port_hex" '
+        $2 ~ port && $4 == "01" && $7 != "00000000" {
+            print $0
+        }
+    ' /proc/net/tcp)
+
+    if [[ -n "$result" ]]; then
+        echo "Port $port is in ESTABLISHED state with retr != 0"
+        return 0
+    else
+        echo "Port $port is not in ESTABLISHED state or retr == 0"
+        return 1
+    fi
+}
+
+# Example usage
+check_port_state 8080
+-n +2 | awk '
 function hex2ip(hex) {
     return sprintf("%d.%d.%d.%d", \
         ("0x" substr(hex, 7, 2)) + 0, \
@@ -104,7 +293,61 @@ function tcp_state(state_hex) {
     states["05"] = "FIN_WAIT2"
     states["06"] = "TIME_WAIT"
     states["07"] = "CLOSE"
-    states["08"] = "CLOSE_WAIT"
+    states["08"] = "CLOSE#!/bin/bash
+
+# Function to check if a port is in ESTABLISHED state and retr != 0
+check_port_state() {
+    local port=$1  # The port to check (decimal format)
+
+    # Convert port to hexadecimal (uppercase for consistency in /proc/net/tcp)
+    local port_hex=$(printf '%04X' "$port")
+
+    # Read /proc/net/tcp, filter by port and state, and check retr
+    local result=$(awk -v port=":$port_hex" '
+        $2 ~ port && $4 == "01" && $7 != "00000000" {
+            print $0
+        }
+    ' /proc/net/tcp)
+
+    if [[ -n "$result" ]]; then
+        echo "Port $port is in ESTABLISHED state with retr != 0"
+        return 0
+    else
+        echo "Port $port is not in ESTABLISHED state or retr == 0"
+        return 1
+    fi
+}
+
+# Example usage
+check_port_state 8080
+#!/bin/bash
+
+# Function to check if a port is in ESTABLISHED state and retr != 0
+check_port_state() {
+    local port=$1  # The port to check (decimal format)
+
+    # Convert port to hexadecimal (uppercase for consistency in /proc/net/tcp)
+    local port_hex=$(printf '%04X' "$port")
+
+    # Read /proc/net/tcp, filter by port and state, and check retr
+    local result=$(awk -v port=":$port_hex" '
+        $2 ~ port && $4 == "01" && $7 != "00000000" {
+            print $0
+        }
+    ' /proc/net/tcp)
+
+    if [[ -n "$result" ]]; then
+        echo "Port $port is in ESTABLISHED state with retr != 0"
+        return 0
+    else
+        echo "Port $port is not in ESTABLISHED state or retr == 0"
+        return 1
+    fi
+}
+
+# Example usage
+check_port_state 8080
+_WAIT"
     states["09"] = "LAST_ACK"
     states["0A"] = "LISTEN"
     states["0B"] = "CLOSING"
@@ -122,3 +365,37 @@ function tcp_state(state_hex) {
     printf "Local: %s:%d, Remote: %s:%d, State: %s (%s), Inode: %s\n", \
         local_ip, local_port, remote_ip, remote_port, state_hex, state_desc, inode
 }'
+
+
+
+
+
+
+#!/bin/bash
+
+# Function to check if a port is in ESTABLISHED state and retr != 0
+check_port_state() {
+    local port=$1  # The port to check (decimal format)
+
+    # Convert port to hexadecimal (uppercase for consistency in /proc/net/tcp)
+    local port_hex=$(printf '%04X' "$port")
+
+    # Read /proc/net/tcp, filter by port and state, and check retr
+    local result=$(awk -v port=":$port_hex" '
+        $2 ~ port && $4 == "01" && $7 != "00000000" {
+            print $0
+        }
+    ' /proc/net/tcp)
+
+    if [[ -n "$result" ]]; then
+        echo "Port $port is in ESTABLISHED state with retr != 0"
+        return 0
+    else
+        echo "Port $port is not in ESTABLISHED state or retr == 0"
+        return 1
+    fi
+}
+
+# Example usage
+check_port_state 8080
+
