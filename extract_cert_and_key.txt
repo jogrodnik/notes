@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# Ensure the script exits on errors
+set -e
+
+# Function to display usage information
+usage() {
+    echo "Usage: $0 -j <keystore.jks> -a <alias> -p <keystore_password> -c <client_cert.pem> -k <client_key.pem> -r <root_ca.pem>"
+    exit 1
+}
+
+# Parse command-line arguments
+while getopts "j:a:p:c:k:r:" opt; do
+    case $opt in
+        j) JKS_FILE="$OPTARG" ;;
+        a) ALIAS="$OPTARG" ;;
+        p) KEYSTORE_PASS="$OPTARG" ;;
+        c) CLIENT_CERT="$OPTARG" ;;
+        k) CLIENT_KEY="$OPTARG" ;;
+        r) ROOT_CA="$OPTARG" ;;
+        *) usage ;;
+    esac
+done
+
+# Check if all required arguments are provided
+if [[ -z "$JKS_FILE" || -z "$ALIAS" || -z "$KEYSTORE_PASS" || -z "$CLIENT_CERT" || -z "$CLIENT_KEY" || -z "$ROOT_CA" ]]; then
+    usage
+fi
+
+# Define temporary files
+P12_FILE="keystore.p12"
+TMP_CERT="cert.pem"
+TMP_KEY="key.pem"
+TMP_CHAIN="chain.pem"
+
+# Convert JKS to PKCS#12 format
+echo "Converting JKS to PKCS#12 format..."
+keytool -importkeystore \
+    -srckeystore "$JKS_FILE" \
+    -destkeystore "$P12_FILE" \
+    -srcstoretype JKS \
+    -deststoretype PKCS12 \
+    -srcstorepass "$KEYSTORE_PASS" \
+    -deststorepass "$KEYSTORE_PASS" \
+    -srcalias "$ALIAS"
+
+# Extract client certificate and private key
+echo "Extracting client certificate and private key..."
+openssl pkcs12 -in "$P12_FILE" -clcerts -nokeys -passin pass:"$KEYSTORE_PASS" -out "$CLIENT_CERT"
+openssl pkcs12 -in "$P12_FILE" -nocerts -nodes -passin pass:"$KEYSTORE_PASS" -out "$CLIENT_KEY"
+
+# Extract the certificate chain, including the root CA
+echo "Extracting certificate chain..."
+openssl pkcs12 -in "$P12_FILE" -cacerts -nokeys -chain -passin pass:"$KEYSTORE_PASS" -out "$TMP_CHAIN"
+
+# Extract the root CA certificate
+echo "Extracting root CA certificate..."
+awk '/-----BEGIN CERTIFICATE-----/{i++}i>1' "$TMP_CHAIN" > "$ROOT_CA"
+
+# Clean up temporary files
+echo "Cleaning up temporary files..."
+rm -f "$P12_FILE" "$TMP_CHAIN" "$TMP_CERT" "$TMP_KEY"
+
+echo "Client certificate saved to: $CLIENT_CERT"
+echo "Client private key saved to: $CLIENT_KEY"
+echo "Root CA certificate saved to: $ROOT_CA"
