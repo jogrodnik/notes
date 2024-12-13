@@ -1,4 +1,5 @@
 We know the cause of the error. We need to implement a new Nginx proxy configuration, but we must be very cautious when deploying it to production. We will deploy this version at the beginning of January. The error stems from an incorrect configuration parameter: ssl_buffer_size.
+We managed to replicate the error in our environment. The default value of this parameter is 16K, and we increased it to 1M. We are considering implementing monitoring of Nginx internal parameters to prevent such errors in the future.
 
 If you're using Google BigQuery, for a Service Account to be able to read data from a view, you should assign at least the following roles:
 
