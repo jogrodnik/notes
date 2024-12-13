@@ -1,3 +1,5 @@
+We know the cause of the error. We need to implement a new Nginx proxy configuration, but we must be very cautious when deploying it to production. We will deploy this version at the beginning of January. The error stems from an incorrect configuration parameter: ssl_buffer_size.
+
 If you're using Google BigQuery, for a Service Account to be able to read data from a view, you should assign at least the following roles:
 
 BigQuery Data Viewer (roles/bigquery.dataViewer): This is a basic role that allows reading data in tables and views.
