@@ -1,5 +1,7 @@
 curl -s -D - -o /dev/null https://example.com | grep -i "Set-Cookie" | grep "sessionid" | awk -F'=' '{print $2}' | awk -F';' '{print $1}'
 
+The message "Logging before InitGoogle is written to STDERR" in Cloud SQL logs typically occurs in applications or scripts that interact with Google Cloud SQL. It indicates that logging is being written to the standard error stream (STDERR) before the Google Cloud-specific libraries or configurations are fully initialized.
+
 We know the cause of the error. We need to implement a new Nginx proxy configuration, but we must be very cautious when deploying it to production. We will deploy this version at the beginning of January. The error stems from an incorrect configuration parameter: ssl_buffer_size.
 We managed to replicate the error in our environment. The default value of this parameter is 16K, and we increased it to 1M. We are considering implementing monitoring of Nginx internal parameters to prevent such errors in the future.
 
