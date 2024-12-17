@@ -1,3 +1,6 @@
+"Because we had a problem with the stable operation of the deployment process on dev, it was noticed that although Piotr deployed both pipelines, they were not working correctly. 
+After consulting with Piotr, I manually deployed them on the KOPS UAT environment (NOT GCP UAT). You can now check the data."
+
 To run the Google Cloud Profiler for a Java application deployed on Google Kubernetes Engine (GKE), follow these steps:
 
 1. Enable Google Cloud Profiler API
