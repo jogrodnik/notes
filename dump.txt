@@ -1,0 +1,35 @@
+Generating a Thread Dump in Kubernetes
+
+Step 1: Identify the Pod
+List running Pods:
+
+bash
+Copy code
+kubectl get pods
+
+Example Output:
+
+
+Copy code
+NAME                         READY   STATUS    RESTARTS   AGE
+java-app-6b7d9c94d9-qz7qp    1/1     Running   0          5m
+  
+Step 2: Locate the Java Process
+Exec into the Pod and locate the Java process:
+
+bash
+Copy code
+kubectl exec -it java-app-6b7d9c94d9-qz7qp -- ps auxww | grep java
+Example Output:
+
+root         1  0.5  2.3 234000 56432 ?        Sl   10:00   0:03 java -jar /app/myapp.jar
+Here, 1 is the PID of the Java process inside the Pod.
+
+Step 3: Generate the Thread Dump
+Send the SIGQUIT signal to the Java process:
+
+bash
+Copy code
+kubectl exec -it java-app-6b7d9c94d9-qz7qp -- kill -3 1
+
+  
