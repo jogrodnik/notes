@@ -1,6 +1,50 @@
 pipeline {
     agent any
     parameters {
+        // Parent Parameter
+        activeChoiceParam(name: 'PARENT_PARAM') {
+            description('Select a parent option.')
+            choiceType('SINGLE_SELECT') // Dropdown menu
+            groovyScript {
+                // Define the parent options
+                return ['Option1', 'Option2', 'Option3']
+            }
+        }
+
+        // Dependent Child Parameter
+        activeChoiceReactiveParam(name: 'CHILD_PARAM') {
+            description('Select a child option based on the parent parameter.')
+            dependsOn('PARENT_PARAM') // Makes CHILD_PARAM dependent on PARENT_PARAM
+            choiceType('SINGLE_SELECT') // Dropdown menu
+            groovyScript {
+                // Dynamically generate child options based on the parent parameter's value
+                if (PARENT_PARAM == 'Option1') {
+                    return ['Child1', 'Child2']
+                } else if (PARENT_PARAM == 'Option2') {
+                    return ['Child3', 'Child4']
+                } else {
+                    return ['Child5', 'Child6']
+                }
+            }
+        }
+    }
+    stages {
+        stage('Display Parameters') {
+            steps {
+                script {
+                    echo "Selected Parent Parameter: ${params.PARENT_PARAM}"
+                    echo "Selected Child Parameter: ${params.CHILD_PARAM}"
+                }
+            }
+        }
+    }
+}
+
+
+
+pipeline {
+    agent any
+    parameters {
         choice(name: 'PARENT_PARAM', choices: ['Option1', 'Option2', 'Option3'], description: 'Select a parent option.')
         activeChoiceReactiveParam(name: 'CHILD_PARAM') {
             dependsOn('PARENT_PARAM')
