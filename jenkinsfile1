@@ -1,5 +1,35 @@
 pipeline {
     agent any
+    parameters {
+        choice(name: 'PARENT_PARAM', choices: ['Option1', 'Option2', 'Option3'], description: 'Select a parent option.')
+        activeChoiceReactiveParam(name: 'CHILD_PARAM') {
+            dependsOn('PARENT_PARAM')
+            groovyScript {
+                if (PARENT_PARAM == 'Option1') {
+                    return ['Child1', 'Child2']
+                } else if (PARENT_PARAM == 'Option2') {
+                    return ['Child3', 'Child4']
+                } else {
+                    return ['Child5']
+                }
+            }
+        }
+    }
+    stages {
+        stage('Test') {
+            steps {
+                echo "Parent: ${params.PARENT_PARAM}"
+                echo "Child: ${params.CHILD_PARAM}"
+            }
+        }
+    }
+}
+
+
+
+
+pipeline {
+    agent any
 
     stages {
         stage('Define Classes and Singleton') {
