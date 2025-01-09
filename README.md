@@ -1,3 +1,6 @@
+
+You need to follow this link and select the name of the project you are working on. There, you will find a workspace dedicated to the project and its environments. Run the jobs located in this directory. If you are deploying the project in an environment other than HK, select the environment, e.g., india1, etc. In this subfolder, you will find jobs dedicated to that environment.
+
 curl -s -D - -o /dev/null https://example.com | grep -i "Set-Cookie" | grep "sessionid" | awk -F'=' '{print $2}' | awk -F';' '{print $1}'
 
 The message "Logging before InitGoogle is written to STDERR" in Cloud SQL logs typically occurs in applications or scripts that interact with Google Cloud SQL. It indicates that logging is being written to the standard error stream (STDERR) before the Google Cloud-specific libraries or configurations are fully initialized.
