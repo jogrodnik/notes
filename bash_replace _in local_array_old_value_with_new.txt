@@ -1,1 +1,29 @@
+#!/bin/bash
+
+# Define the function fun1
+fun1() {
+    local element="$1"
+    local additional="$2"
+    # Process the element and return a new string
+    echo "${element}_processed_with_${additional}"
+}
+
+# Main script
+process_string="alal,ola,kasia"
+str1="some_string"
+
+# Convert string to local array
+IFS=',' read -r -a local_array <<< "$process_string"
+
+# Loop through the array and update values
+for i in "${!local_array[@]}"; do
+    # Call fun1 and update the array in place
+    local_array[i]=$(fun1 "${local_array[i]}" "$str1")
+done
+
+# Print the final updated array
+echo "Final array:"
+for element in "${local_array[@]}"; do
+    echo "$element"
+done
 
