@@ -1,0 +1,33 @@
+Default Values for Kafka Parameters
+Consumer Settings
+
+Parameter	Default Value	Description
+
+
+max.partition.fetch.bytes	1,048,576 bytes (1 MB)	Maximum amount of data fetched per partition in one request.
+fetch.max.bytes	Unlimited	Maximum amount of data fetched across all partitions (limited only by max.partition.fetch.bytes).
+fetch.min.bytes	1 byte	Minimum amount of data the broker sends to the consumer per request.
+fetch.max.wait.ms	500 ms	Maximum time the broker waits to accumulate data before responding to a fetch request.
+message.max.bytes	1,048,576 bytes (1 MB)	Maximum size of a message the consumer will accept.
+max.poll.records	500	Maximum number of records returned in a single poll() call.
+max.poll.interval.ms	300,000 ms (5 min)	Maximum time between calls to poll() before the consumer is considered inactive.
+
+Broker Settings
+
+Parameter	Default Value	Description
+
+message.max.bytes	1,048,576 bytes (1 MB)	Maximum size of a message the broker will accept.
+replica.fetch.max.bytes	1,048,576 bytes (1 MB)	Maximum size of data fetched by replicas from the leader for replication.
+max.request.size	1,048,576 bytes (1 MB)	Maximum size of a single request the broker will accept.
+
+Important Notes
+
+Default Size Limitation:
+
+By default, Kafka can handle messages of up to 1 MB. If your records are larger, you must increase the related parameters on producers, brokers, and consumers.
+Unlimited Fetch Across Partitions:
+
+fetch.max.bytes is unlimited by default, meaning the total fetch size is constrained only by max.partition.fetch.bytes multiplied by the number of partitions a consumer fetches from.
+Rebalance Stability:
+
+Ensure that large message size settings align with session.timeout.ms, rebalance.timeout.ms, and max.poll.interval.ms to avoid rebalances due to processing delays.
