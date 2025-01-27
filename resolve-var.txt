@@ -1,0 +1,26 @@
+def resolve_value(primary, fallback):
+    """
+    Resolves the value for `var_c` based on the following logic:
+    - If `primary` is an empty string, return `fallback`.
+    - Otherwise, return `primary`.
+
+    Args:
+        primary (str): The primary value to check.
+        fallback (str): The fallback value to use if `primary` is empty.
+
+    Returns:
+        str: The resolved value.
+    """
+    return fallback if primary == "" else primary
+
+
+# Example usage
+var_a = "Value from A"
+var_b = ""  # Empty string
+
+var_c = resolve_value(var_b, var_a)
+print(var_c)  # Output: Value from A
+
+var_b = "Value from B"
+var_c = resolve_value(var_b, var_a)
+print(var_c)  # Output: Value from B
