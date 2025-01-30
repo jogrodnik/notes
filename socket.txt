@@ -31,7 +31,31 @@ fi
 # Mapping of TCP State Codes
 # Hex Code	State	Description
 # 01	ESTABLISHED	Active open connection.
-# 02	SYN_SENT	Connection request sent; awaiting acknowledgment.
+# 02	SYN_SENT	Connection request sen#!/bin/bash
+INTERFACE="eth0"
+DELAY=1  # Measurement interval in seconds
+
+# Read initial values
+RX1=$(awk "/$INTERFACE/ {print \$2}" /proc/net/dev)
+TX1=$(awk "/$INTERFACE/ {print \$10}" /proc/net/dev)
+
+sleep $DELAY
+
+# Read values after delay
+RX2=$(awk "/$INTERFACE/ {print \$2}" /proc/net/dev)
+TX2=$(awk "/$INTERFACE/ {print \$10}" /proc/net/dev)
+
+# Calculate bytes per second
+RX_SPEED=$(( (RX2 - RX1) / DELAY ))
+TX_SPEED=$(( (TX2 - TX1) / DELAY ))
+
+# Convert to Mbps (1 Megabit = 125000 bytes)
+RX_Mbps=$(( RX_SPEED / 125000 ))
+TX_Mbps=$(( TX_SPEED / 125000 ))
+
+echo "Download Speed: $RX_Mbps Mbps"
+echo "Upload Speed: $TX_Mbps Mbps"
+t; awaiting acknowledgment.
 # 03	SYN_RECV	Connection request received; awaiting acknowledgment.
 # 04	FIN_WAIT1	Connection is closing; FIN sent.
 # 05	FIN_WAIT2	Connection is closing; FIN acknowledged.
@@ -149,3 +173,32 @@ TX_Mbps=$(echo "scale=2; $TX_SPEED / 125000" | bc)
 echo "Download Speed: $RX_Mbps Mbps"
 echo "Upload Speed: $TX_Mbps Mbps"
 
+
+#Without bc
+
+cat << 'EOF' > /tmp/performance.sh
+#!/bin/bash
+INTERFACE="eth0"
+DELAY=1  # Measurement interval in seconds
+
+# Read initial values
+RX1=$(awk "/$INTERFACE/ {print \$2}" /proc/net/dev)
+TX1=$(awk "/$INTERFACE/ {print \$10}" /proc/net/dev)
+
+sleep $DELAY
+
+# Read values after delay
+RX2=$(awk "/$INTERFACE/ {print \$2}" /proc/net/dev)
+TX2=$(awk "/$INTERFACE/ {print \$10}" /proc/net/dev)
+
+# Calculate bytes per second
+RX_SPEED=$(( (RX2 - RX1) / DELAY ))
+TX_SPEED=$(( (TX2 - TX1) / DELAY ))
+
+# Convert to Mbps (1 Megabit = 125000 bytes)
+RX_Mbps=$(( RX_SPEED / 125000 ))
+TX_Mbps=$(( TX_SPEED / 125000 ))
+
+echo "Download Speed: $RX_Mbps Mbps"
+echo "Upload Speed: $TX_Mbps Mbps"
+EOF
