@@ -122,3 +122,30 @@ function tcp_state(state_hex) {
     printf "Local: %s:%d, Remote: %s:%d, State: %s (%s), Inode: %s\n", \
         local_ip, local_port, remote_ip, remote_port, state_hex, state_desc, inode
 }'
+
+
+
+#Performance
+
+#!/bin/bash
+INTERFACE="eth0"
+DELAY=1  # Measurement interval in seconds
+
+# Read initial values
+RX1=$(cat /proc/net/dev | grep "$INTERFACE" | awk '{print $2}')
+TX1=$(cat /proc/net/dev | grep "$INTERFACE" | awk '{print $10}')
+sleep $DELAY
+RX2=$(cat /proc/net/dev | grep "$INTERFACE" | awk '{print $2}')
+TX2=$(cat /proc/net/dev | grep "$INTERFACE" | awk '{print $10}')
+
+# Calculate bytes per second
+RX_SPEED=$(( (RX2 - RX1) / DELAY ))
+TX_SPEED=$(( (TX2 - TX1) / DELAY ))
+
+# Convert to Mbps (1 Megabit = 125000 bytes)
+RX_Mbps=$(echo "scale=2; $RX_SPEED / 125000" | bc)
+TX_Mbps=$(echo "scale=2; $TX_SPEED / 125000" | bc)
+
+echo "Download Speed: $RX_Mbps Mbps"
+echo "Upload Speed: $TX_Mbps Mbps"
+
