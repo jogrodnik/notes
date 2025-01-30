@@ -1,0 +1,46 @@
+cat > /tmp/server.sh << 'EOF'
+while true; do
+    exec 3<>/dev/tcp/0.0.0.0/5000
+    dd if=/dev/zero bs=1M count=1000 >&3
+    exec 3>&-
+done
+EOF
+
+________________________________________________________________________________________________
+
+exec is used to open a file descriptor (3) for reading (<) and writing (>).
+/dev/tcp/0.0.0.0/5000 is a special Bash feature that creates a TCP socket:
+0.0.0.0 → Listens on all available network interfaces.
+5000 → The port where the server is listening.
+3<> assigns the file descriptor 3 to the TCP connection.
+🔹 Effect: This waits for an incoming connection on port 5000. When a client connects, 
+   it assigns the socket to file descriptor 3.
+
+dd is a low-level data transfer command.
+if=/dev/zero → Uses a special file that outputs an endless stream of null bytes (\x00).
+bs=1M → Block size is 1 MB.
+count=1000 → Sends 1000 blocks, which is 1000 MB (1GB).
+>&3 → Redirects output to file descriptor 3, which is the TCP connection.
+🔹 Effect: Sends 1GB of data to the client as soon as it connects.
+
+Closes file descriptor 3.
+This disconnects the client after sending 1GB of data.
+The script loops back to while true and waits for the next connection.
+
+
+The script runs forever (while true).
+It waits for a client connection on port 5000.
+Once a client connects, it:
+Opens a TCP connection (exec 3<>/dev/tcp/0.0.0.0/5000).
+Sends 1GB of data (dd if=/dev/zero bs=1M count=1000 >&3).
+Closes the connection (exec 3>&-).
+Loops back to step 2 for the next client.
+________________________________________________________________________________________________
+
+cat >/tmp/client.sh << 'EOF'
+exec 3<>/dev/tcp/<VM1-IP>/5000
+dd if=<&3 of=/dev/null bs=1M
+EOF
+
+This receives 1GB of data from the server and discards it (/dev/null).
+After the transfer, the connection closes and the server waits for a new client.
