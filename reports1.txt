@@ -1,0 +1,129 @@
+Work Report
+
+1. Implementation of Project Installation Automation
+
+I implemented a set of Jenkins jobs that automate the project installation process in the GCP environment. The scope of automation includes:
+
+Creating and configuring namespaces (Kubernetes namespace) for any GCP project.
+
+Installing Kafka infrastructure in a stretching cluster mode, spanning two independent GCP regions.
+
+Full integration of the solution with the HSBC environment, in compliance with the bank's requirements.
+
+2. Technical Support for Unity Projects
+
+I provided ongoing technical support for Unity projects in the areas of:
+
+Kubernetes maintains and optimizes clusters and troubleshoots deployment issues.
+
+Kafka ensures high availability, monitoring, and performance optimization.
+Work Report
+
+1. Implementation of Project Installation Automation
+
+I implemented a set of Jenkins jobs that automate the project installation process in the GCP environment. The scope of automation includes:
+
+Creating and configuring namespaces (Kubernetes namespace) for any GCP project.
+
+Installing Kafka infrastructure in a stretching cluster mode, spanning two independent GCP regions.
+
+Full integration of the solution with the HSBC environment, in compliance with the bank's requirements.
+
+2. Technical Support for Unity Projects
+
+I provided ongoing technical support for Unity projects in the areas of:
+
+Kubernetes maintains and optimizes clusters and troubleshoots deployment issues.
+
+Kafka ensures high availability, monitoring, and performance optimization.
+
+GCP – managing cloud resources, and adjusting configurations to meet project requirements.
+
+3. Deployment of New Unity Projects
+Work Report
+
+1. Implementation of Project Installation Automation
+
+I implemented a set of Jenkins jobs that automate the project installation process in the GCP environment. The scope of automation includes:
+
+Creating and configuring namespaces (Kubernetes namespace) for any GCP project.
+
+Installing Kafka infrastructure in a stretching cluster mode, spanning two independent GCP regions.
+
+Full integration of the solution with the HSBC environment, in compliance with the bank's requirements.
+
+2. Technical Support for Unity Projects
+
+I provided ongoing technical support for Unity projects in the areas of:
+
+Kubernetes maintains and optimizes clusters and troubleshoots deployment issues.
+
+Kafka ensures high availability, monitoring, and performance optimization.
+
+GCP – managing cloud resources, and adjusting configurations to meet project requirements.
+
+3. Deployment of New Unity Projects
+
+Using the implemented set of Jenkins jobs, I installed and configured three new Unity projects in the GCP environment. The process included:
+
+Automatically creating the necessary resources in Kubernetes.
+
+Configuring and deploying Kafka infrastructure in a stretching cluster mode.
+
+Integrating the system with HSBC requirements and ensuring compliance with security policies.
+
+By leveraging automation, the deployment time of new projects was significantly reduced, and operational processes became more repeatable and resilient to manual errors.
+Using the implemented set of Jenkins jobs, I installed and configured three new Unity projects in the GCP environment. The process included:
+
+Automatically creating the necessary resources in Kubernetes.
+
+Configuring and deploying Kafka infrastructure in a stretching cluster mode.
+
+Integrating the system with HSBC requirements and ensuring compliance with security policies.
+
+By leveraging automation, the deployment time of new projects was significantly reduced, and operational processes became more repeatable and resilient to manual errors.
+GCP – managing cloud resources, and adjusting configurations to meet project requirements.
+
+3. Deployment of New Unity Projects
+
+Using the implemented set of Jenkins jobs, I installed and configured three new Unity projects in the GCP environment. The process included:
+Work Report
+
+1. Implementation of Project Installation Automation
+
+I implemented a set of Jenkins jobs that automate the project installation process in the GCP environment. The scope of automation includes:
+
+Creating and configuring namespaces (Kubernetes namespace) for any GCP project.
+
+Installing Kafka infrastructure in a stretching cluster mode, spanning two independent GCP regions.
+
+Full integration of the solution with the HSBC environment, in compliance with the bank's requirements.
+
+2. Technical Support for Unity Projects
+
+I provided ongoing technical support for Unity projects in the areas of:
+
+Kubernetes maintains and optimizes clusters and troubleshoots deployment issues.
+
+Kafka ensures high availability, monitoring, and performance optimization.
+
+GCP – managing cloud resources, and adjusting configurations to meet project requirements.
+
+3. Deployment of New Unity Projects
+
+Using the implemented set of Jenkins jobs, I installed and configured three new Unity projects in the GCP environment. The process included:
+
+Automatically creating the necessary resources in Kubernetes.
+
+Configuring and deploying Kafka infrastructure in a stretching cluster mode.
+
+Integrating the system with HSBC requirements and ensuring compliance with security policies.
+
+By leveraging automation, the deployment time of new projects was significantly reduced, and operational processes became more repeatable and resilient to manual errors.
+Automatically creating the necessary resources in Kubernetes.
+
+Configuring and deploying Kafka infrastructure in a stretching cluster mode.
+
+Integrating the system with HSBC requirements and ensuring compliance with security policies.
+
+By leveraging automation, the deployment time of new projects was significantly reduced, and operational processes became more repeatable and resilient to manual errors.
