@@ -1,0 +1,26 @@
+def generate_url_external(
+    cloud_provider="gcp", env="dev", region="us-west1", project="my-project", domain="cloud", company="hsbc", custom_url=None
+):
+    if custom_url:
+        return custom_url  # Use the custom value if provided
+    
+    templates = {
+        "gcp": "{env}.{region}.{project}.{domain}.gcp.cloud.{company}.hsbc",
+        "aws": "{env}.{region}.{project}.{domain}.aws.cloud.{company}.hsbc",
+        "azure": "{env}.{region}.{project}.{domain}.azure.cloud.{company}.hsbc",
+        "default": "{env}.{region}.{project}.{domain}.other.cloud.{company}.hsbc",
+    }
+    
+    # Select the appropriate template based on cloud provider
+    template = templates.get(cloud_provider, templates["default"])
+    
+    # Format the string with values
+    return template.format(
+        env=env, region=region, project=project, domain=domain, company=company
+    )
+
+# Example usage:
+print(generate_url_external())  # Default (GCP)
+print(generate_url_external(cloud_provider="aws"))  # AWS
+print(generate_url_external(cloud_provider="azure", project="custom-project"))  # Azure with custom project
+print(generate_url_external(custom_url="my.custom.url.com"))  # Custom URL
