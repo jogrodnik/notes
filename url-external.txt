@@ -24,3 +24,18 @@ print(generate_url_external())  # Default (GCP)
 print(generate_url_external(cloud_provider="aws"))  # AWS
 print(generate_url_external(cloud_provider="azure", project="custom-project"))  # Azure with custom project
 print(generate_url_external(custom_url="my.custom.url.com"))  # Custom URL
+
+
+{{- define "generate.url_external" -}}
+{{- if .Values.url_external -}}
+    {{ .Values.url_external }}
+{{- else if eq .Values.cloudProvider "gcp" -}}
+    {{ printf "%s.%s.%s.%s.gcp.cloud.%s.hsbc" .Values.env .Values.region .Values.project .Values.domain .Values.company }}
+{{- else if eq .Values.cloudProvider "aws" -}}
+    {{ printf "%s.%s.%s.%s.aws.cloud.%s.hsbc" .Values.env .Values.region .Values.project .Values.domain .Values.company }}
+{{- else if eq .Values.cloudProvider "azure" -}}
+    {{ printf "%s.%s.%s.%s.azure.cloud.%s.hsbc" .Values.env .Values.region .Values.project .Values.domain .Values.company }}
+{{- else -}}
+    {{ printf "%s.%s.%s.%s.other.cloud.%s.hsbc" .Values.env .Values.region .Values.project .Values.domain .Values.company }}
+{{- end -}}
+{{- end }}
