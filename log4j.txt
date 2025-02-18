@@ -1,0 +1,70 @@
+# Set the root logger level to DEBUG
+log4j.rootLogger=DEBUG, stdout, kafkaAppender
+
+# Console Output
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=%d [%t] %-5p %c - %m%n
+
+# Kafka Log File Output
+log4j.appender.kafkaAppender=org.apache.log4j.FileAppender
+log4j.appender.kafkaAppender.File=/var/log/kafka/kafka-debug.log
+log4j.appender.kafkaAppender.layout=org.apache.log4j.PatternLayout
+log4j.appender.kafkaAppender.layout.ConversionPattern=%d [%t] %-5p %c - %m%n
+
+# Set specific Kafka modules to DEBUG
+log4j.logger.kafka=DEBUG
+log4j.logger.kafka.server=DEBUG
+log4j.logger.kafka.controller=DEBUG
+log4j.logger.kafka.log=DEBUG
+log4j.logger.kafka.network.RequestChannel=DEBUG
+log4j.logger.kafka.cluster=DEBUG
+log4j.logger.kafka.metadata=DEBUG
+log4j.logger.kafka.raft=DEBUG
+log4j.logger.kafka.metadata.loader=DEBUG
+log4j.logger.kafka.storage=DEBUG
+log4j.logger.kafka.transaction=DEBUG
+log4j.logger.kafka.consumer=DEBUG
+log4j.logger.kafka.producer=DEBUG
+log4j.logger.kafka.coordinator=DEBUG
+log4j.logger.kafka.security=DEBUG
+log4j.logger.kafka.state=DEBUG
+log4j.logger.kafka.quotas=DEBUG
+log4j.logger.kafka.group=DEBUG
+log4j.logger.kafka.admin=DEBUG
+log4j.logger.kafka.jmx=DEBUG
+log4j.logger.kafka.metrics=DEBUG
+log4j.logger.kafka.streams=DEBUG
+log4j.logger.kafka.mirror=DEBUG
+log4j.logger.kafka.authorizer=DEBUG
+log4j.logger.kafka.broker=DEBUG
+log4j.logger.kafka.api=DEBUG
+log4j.logger.kafka.scheduler=DEBUG
+log4j.logger.kafka.utils=DEBUG
+log4j.logger.kafka.dynamic=DEBUG
+log4j.logger.kafka.epoch=DEBUG
+log4j.logger.kafka.zookeeper=DEBUG
+
+# Enable DEBUG for Apache ZooKeeper (if applicable)
+log4j.logger.org.apache.zookeeper=DEBUG
+
+# Enable DEBUG for Java Garbage Collector Logs
+log4j.logger.sun.rmi=DEBUG
+log4j.logger.java.rmi=DEBUG
+log4j.logger.org.apache.kafka=DEBUG
+log4j.logger.org.apache.kafka.common=DEBUG
+log4j.logger.org.apache.kafka.common.metrics=DEBUG
+log4j.logger.org.apache.kafka.common.utils=DEBUG
+log4j.logger.org.apache.kafka.clients=DEBUG
+log4j.logger.org.apache.kafka.clients.consumer=DEBUG
+log4j.logger.org.apache.kafka.clients.producer=DEBUG
+log4j.logger.org.apache.kafka.streams=DEBUG
+log4j.logger.org.apache.kafka.streams.processor=DEBUG
+log4j.logger.org.apache.kafka.streams.state=DEBUG
+log4j.logger.org.apache.kafka.connect=DEBUG
+log4j.logger.org.apache.kafka.connect.runtime=DEBUG
+log4j.logger.org.apache.kafka.connect.storage=DEBUG
+
+# Reduce noise from Kafka internals
+log4j.logger.kafka.request.logger=WARN
+log4j.logger.org.apache.kafka.clients.consumer.internals.Fetcher=WARN
