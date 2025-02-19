@@ -1,0 +1,7 @@
+The India project consists of two GCP projects: IN1 and IN2, each with its own GKE cluster. Within each cluster, identical namespaces are dedicated to specific applications. Additionally, each project has its own CloudSQL PostgreSQL database.
+
+Kafka is deployed on GKE in a dedicated namespace in both regions, running in KRaft mode with 3 controllers and 3 brokers per region, forming a single stretched cluster across both GCP projects.
+
+CloudSQL is replicated and operates in an active-passive mode, ensuring high availability and failover support. Private Service Connect (PSC) is exclusively used for internal communication between HGKE clusters, providing low-latency, secure connectivity across regions. PSC also enables private access to the active CloudSQL PostgreSQL instance, maintaining network security and isolation without exposing it to the public internet.
+
+For securing internal communication, we use self-signed certificates instead of relying on an external certificate authority. Since all traffic remains within the private, controlled GCP network, self-signed certificates ensure encryption and authentication while providing full control over certificate management and avoiding unnecessary dependencies.
