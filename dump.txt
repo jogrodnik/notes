@@ -1,3 +1,33 @@
+The project uses a Kafka cluster configured in a stretching cluster model across two GCP regions.
+
+To connect to the Kafka cluster, please use the following connection parameters:
+
+Bootstrap servers:
+kafka-01.treasury.example.com:9093,kafka-02.treasury.example.com:9093,kafka-03.treasury.example.com:9093
+
+Security Protocol:
+SASL_SSL
+
+Mechanism:
+PLAIN
+
+SASL Username:
+(available from the DevOps team)
+
+SASL Password:
+(available from the DevOps team)
+
+Topic for transactional data:
+treasury.transactions
+
+Topic for technical logs:
+treasury.logs
+
+If you have any questions regarding configuration or access, please contact the Platform Engineering team.
+
+
+
+
 Generating a Thread Dump in Kubernetes
 
 Step 1: Identify the Pod
