@@ -1,3 +1,4 @@
+Together with Eddi, we have prepared the production environment for the Treasury project.
 The project uses a Kafka cluster configured in a stretching cluster model across two GCP regions.
 
 To connect to the Kafka cluster, please use the following connection parameters:
