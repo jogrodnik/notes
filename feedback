@@ -1,3 +1,8 @@
+We have changed the Java configuration to -XX:MaxRAMPercentage=75.0 and -XX:MaxMetaspaceSize=384m.
+This change is based on the experience gained during tests carried out after upgrading Java and Spring libraries.
+After the change, the OutOfMemory error stopped occurring, along with a series of errors caused by the restart of the cache component. This restart was affecting the stability of other pipeline components.
+In order to identify potential issues, the system should be monitored.
+
 I want to highlight Piotr’s excellent contributions, especially on the Mesh project and optimizing the ODS pipelines. He also did a great job improving the Unity pipelines and working with the Kafka-based system. Piotr consistently solved complex challenges and delivered high-quality solutions.
 
 Piotr creates a positive team atmosphere. He communicates clearly, is always ready to help, and makes collaboration easier and more enjoyable for everyone.
