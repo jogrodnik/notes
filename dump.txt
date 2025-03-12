@@ -1,5 +1,7 @@
-Together with Eddi, we have prepared the production environment for the Treasury project.
-The project uses a Kafka cluster configured in a stretching cluster model across two GCP regions.
+"Hi Luke, I have a request. In Unity, we have an application that allows performing operations on deployment objects from the UI level. The application is launched using a service account assigned to a namespace.
+
+How can we extend the permissions of the service account assigned to the namespace?"
+
 
 To connect to the Kafka cluster, please use the following connection parameters:
 
