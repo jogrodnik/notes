@@ -1,30 +1,31 @@
-Formal Technical Justification for Retaining a Self-Signed Certificate in SSL Passthrough Configuration
-Background and Technical Context
-In our current Kubernetes Ingress configuration, we employ SSL passthrough, wherein the Ingress controller forwards encrypted TLS traffic directly to the backend service without terminating, inspecting, or modifying it. As a result, the Ingress controller does not participate in the TLS handshake, meaning that it does not require a certificate for actual SSL/TLS negotiation.
+**Formal Technical Justification for Retaining a Self-Signed Certificate in SSL Passthrough Configuration**
 
-However, due to the constraints of the Kubernetes Ingress API specification, certain fields within the Ingress resource must be defined, even if they are not functionally utilized by the Ingress controller. Specifically, the tls field within an Ingress object requires a reference to a TLS secret, which typically includes a certificate and key pair.
+**Background and Technical Context**  
+In our current Kubernetes Ingress configuration, we use SSL passthrough, which allows the Ingress controller to forward encrypted TLS traffic directly to the backend service without terminating, inspecting, or modifying it. Consequently, the Ingress controller does not participate in the TLS handshake and therefore does not require a certificate for the actual SSL/TLS negotiation.
 
-Rationale for Retaining a Self-Signed Certificate
-The primary concern raised is whether it is possible to remove the self-signed certificate from the configuration. The feasibility of doing so depends on the Ingress controller implementation.
+However, the specifications of the Kubernetes Ingress API mandate that certain fields within the Ingress resource must be defined, even if they are not functionally utilized by the Ingress controller. Specifically, the `tls` field within an Ingress object requires a reference to a TLS secret, which typically includes a certificate and key pair.
 
-For the NGINX Ingress Controller (which we utilize in this setup), if SSL passthrough is enabled via the annotation:
-yaml
-Copy
-Edit
+**Rationale for Retaining a Self-Signed Certificate**  
+The primary concern raised is whether it is possible to remove the self-signed certificate from the configuration. The feasibility of doing so depends on the implementation of the Ingress controller.
+
+For the NGINX Ingress Controller, which we use in this setup, if SSL passthrough is enabled with the following annotation:
+
+```yaml
 nginx.ingress.kubernetes.io/ssl-passthrough: "true"
-the Ingress controller does not terminate TLS and does not make use of the TLS certificate within the Ingress definition.
-However, Kubernetes' API validation still enforces the requirement for a TLS secret reference when the tls field is present in the Ingress specification.
-If this secret is omitted, the Ingress resource will fail validation and will not be processed correctly by the Kubernetes API, leading to potential operational disruptions.
-Therefore, while the certificate is not used for actual TLS termination, it is mandatory to satisfy Kubernetes' API schema and ensure that the Ingress resource is accepted and correctly processed.
+```
 
-Alternative Approaches and Best Practices
-To address concerns while maintaining system integrity, the following best practices are recommended:
+the Ingress controller does not terminate TLS and does not use the TLS certificate specified in the Ingress definition. However, Kubernetes' API validation enforces the requirement for a TLS secret reference whenever the `tls` field is present in the Ingress specification. 
 
-Retaining a self-signed certificate as a "dummy" certificate to satisfy Kubernetes' validation requirements while ensuring it is not utilized in the actual TLS negotiation process.
-Providing explicit documentation clarifying that the certificate is only present for API compliance and does not play a role in SSL/TLS security.
-Exploring alternative configurations where appropriate:
-If strict compliance is required, a TCP-based Ingress configuration may be used instead of a standard HTTPS-based Ingress object. This avoids the need for a TLS certificate reference in the Ingress resource altogether.
-Conclusion and Request for Exception
-Given the architectural constraints imposed by the Kubernetes Ingress API and the requirements of the NGINX Ingress Controller, removing the self-signed certificate is not feasible without violating API constraints and causing configuration failures. The presence of a self-signed certificate in the TLS secret serves a necessary compliance function, ensuring that the Ingress resource is properly validated and deployed.
+If this secret is omitted, the Ingress resource will fail validation and will not be processed correctly by the Kubernetes API, which could result in operational disruptions. Therefore, while the certificate is not actively used for TLS termination, it is necessary to satisfy Kubernetes' API schema and ensure that the Ingress resource is accepted and properly processed.
 
-We kindly request an exception to retain the self-signed certificate in this setup, as its removal would lead to configuration validation failures, potentially affecting service availability and deployment integrity.
+**Alternative Approaches and Best Practices**  
+To address these concerns while maintaining system integrity, the following best practices are recommended:
+
+1. Retain the self-signed certificate as a "dummy" certificate to meet Kubernetes' validation requirements, ensuring it is not utilized in the actual TLS negotiation process.
+2. Provide explicit documentation indicating that the certificate is included solely for API compliance and does not contribute to SSL/TLS security.
+3. Explore alternative configurations where appropriate: If strict compliance is required, consider using a TCP-based Ingress configuration instead of a standard HTTPS-based Ingress object. This approach eliminates the need for a TLS certificate reference in the Ingress resource altogether.
+
+**Conclusion and Request for Exception**  
+Given the architectural constraints imposed by the Kubernetes Ingress API and the requirements of the NGINX Ingress Controller, removing the self-signed certificate is not feasible without violating API constraints and causing configuration failures. The presence of a self-signed certificate in the TLS secret serves a vital compliance function by ensuring that the Ingress resource is properly validated and deployed.
+
+We kindly request an exception to retain the self-signed certificate in this setup, as its removal would lead to configuration validation failures that could potentially impact service availability and deployment integrity.
