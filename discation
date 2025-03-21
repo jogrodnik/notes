@@ -1,2 +1,21 @@
-As you know, each instance of a Unity Managed GKE Cluster is divided into namespaces, within which we run project - microservices implementing client's pipelines. To support our clients, we implemented a dashboard for managing these pipelines within each namespace. The application includes operations allowing pipeline management (mainly deployment), including start, stop, status, cache state, and various other management functions. Currently, we also install Kafka in each namespace to facilitate asynchronous processing.
-This fact also creates further opportunities for the development of this tool and the continued support of our projects.
+#!/bin/bash
+
+# Input bundle file
+BUNDLE_FILE="bundle.pem"
+
+# Output directory
+OUTPUT_DIR="cert_parts"
+mkdir -p "$OUTPUT_DIR"
+
+# Split the bundle
+csplit -sz "$BUNDLE_FILE" '/-----BEGIN CERTIFICATE-----/' '{*}' > /dev/null
+
+# Rename the split files
+i=0
+for file in xx*; do
+  mv "$file" "$OUTPUT_DIR/cert_$i.pem"
+  ((i++))
+done
+
+echo "Certificates extracted to $OUTPUT_DIR/"
+
