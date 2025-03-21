@@ -1,3 +1,8 @@
+you can have multiple YAML files under the provisioning directory, but you cannot define the same datasource ID (or name/UID) more than once across those files — doing so will lead to conflicts or undefined behavior.
+
+
+
+
 "Hi Luke, I have a request. In Unity, we have an application that allows performing operations on deployment objects from the UI level. The application is launched using a service account assigned to a namespace.
 
 How can we extend the permissions of the service account assigned to the namespace?"
