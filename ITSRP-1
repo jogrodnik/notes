@@ -1,0 +1,125 @@
+Here you go — a complete **Markdown version** of the **ITSRP for Recovery to Alternate DC (IN2) for Real Invocation**, tailored to your environment:
+
+---
+
+```markdown
+# 🛠️ ITSRP: Recovery to Alternate DC (IN2) for Real Invocation
+
+**Context:**
+- Each GKE **namespace = one project**
+- Kafka is **stretched** across **IN1 (Production)** and **IN2 (Alternate)**
+- Cloud SQL primary is in **IN1**, replica in **IN2**
+- Goal: Recover workloads in IN2 to process **real traffic**
+
+---
+
+## 1️⃣ Pre Shutdown Steps (Pre-handover to the business)
+
+- 🔔 Notify stakeholders (business, ops, SREs)
+- 🧊 Quiesce workloads in IN1 (disable triggers, cronjobs)
+- ⛔ Stop non-critical services in `IN1`
+- 🎯 Gracefully drain application pods in IN1:
+  ```bash
+  kubectl -n <project-ns> scale deployment <app-name> --replicas=0
+  ```
+- 💾 Take on-demand backup of Cloud SQL (optional)
+- 📝 Record Kafka consumer group offsets for recovery validation
+
+---
+
+## 2️⃣ Switch Over Steps
+
+- 🔄 **Promote Cloud SQL replica** in IN2 to become primary:
+  ```bash
+  gcloud sql instances promote-replica <replica-instance-name>
+  ```
+- 🔧 Update app ConfigMap/Secret with new DB hostname (IN2):
+  ```bash
+  kubectl -n <project-ns> edit configmap app-config
+  # Update DB_HOST to point to IN2 Cloud SQL
+  ```
+- 🔄 Configure Kafka clients to prefer IN2 brokers (e.g., modify bootstrap servers)
+
+---
+
+## 3️⃣ GKE Workload Relocation
+
+- 🚀 Deploy application workloads in **IN2**:
+  ```bash
+  kubectl -n <project-ns> apply -f deployment.yaml
+  ```
+- 🔁 Ensure proper secrets/configs are present in IN2
+- ✅ Kafka clients should retain their consumer group IDs and commit offsets
+
+---
+
+## 4️⃣ IT Health Checks
+
+- 🔍 Check pod health:
+  ```bash
+  kubectl get pods -n <project-ns>
+  ```
+- 🧪 Validate DB connection from pods:
+  ```bash
+  kubectl run debug --rm -it --image=busybox -n <project-ns> -- wget --timeout=5 <IN2_DB_HOST>:5432
+  ```
+- 🔄 Verify Kafka topic status and consumer group lag:
+  ```bash
+  kafka-consumer-groups.sh --bootstrap-server <IN2_KAFKA> --describe --group <consumer-group>
+  ```
+- 🌐 Ensure DNS/Ingress/PSC connectivity is healthy (internal and external)
+
+---
+
+## 5️⃣ Enable Real Invocation (Post-handover to business)
+
+- 🔓 Resume traffic to app via IN2 ingress (if paused)
+- 🔁 Unpause Cloud Load Balancer (if applicable)
+- 📈 Monitor metrics, request flow, and logs:
+  - Use GKE Dashboard, Cloud Logging, Cloud Monitoring
+  - Check SLOs / SLIs for key services
+
+---
+
+## 6️⃣ IT Post-Recovery (post-handover to business)
+
+- 📣 Notify stakeholders that traffic is flowing via IN2
+- 🧾 Archive logs, state snapshots, and metrics from IN1
+- 🪵 Document exact steps and changes performed
+- 🛠 Begin RCA if this was triggered by an outage
+
+---
+
+## 7️⃣ Optional Cleanup / Failback Prep
+
+- ❄️ Freeze or delete stale workloads in IN1
+- 🔁 Re-sync data back from IN2 to IN1 (if planning failback)
+- 🔄 Re-establish Cloud SQL replication:
+  ```bash
+  gcloud sql instances create-replica --master-instance=<IN2> <IN1-replica>
+  ```
+
+---
+
+## ✅ Notes
+
+- Kafka ISR and min.insync.replicas should tolerate IN1 being offline
+- Ensure Cloud SQL client libraries or `cloud-sql-proxy` are aware of new primary host
+- Verify PSC DNS peering and firewall rules in IN2
+
+---
+
+**Prepared by:**  
+`Your Ops Team / SRE`  
+`Last Updated: 2025-03-31`
+
+```
+
+---
+
+Let me know if you'd like me to:
+- Export this as a **PDF**,
+- Generate **`kubectl` or `gcloud` scripts** from this,
+- Or build a **GitOps-compatible YAML folder layout** based on it.
+
+Ready when you are!
