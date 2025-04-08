@@ -1,0 +1,6 @@
+gcloud logging read \
+  'resource.type="k8s_cluster" AND \
+   resource.labels.cluster_name="CLUSTER_NAME" AND \
+   textPayload:"ScaleDown"' \
+  --limit 50 \
+  --format=json
