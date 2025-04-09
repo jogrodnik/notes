@@ -13,3 +13,14 @@ scale_down_deployment() {
   
   echo "Deployment '$DEPLOYMENT_NAME' is successfully scaled down to 0 replicas."
 }
+
+
+while true; do
+  replicas=$(kubectl get deployment $deployment -n $NAMESPACE -o jsonpath='{.status.replicas}')
+  if [ "$replicas" -eq 0 ]; then
+    echo "Deployment $deployment is scaled down to 0 replicas."
+    break
+  fi
+  echo "Waiting for deployment $deployment to scale down..."
+  sleep 2
+done
