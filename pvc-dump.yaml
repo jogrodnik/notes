@@ -15,3 +15,17 @@ curl -XPATCH \
   -H "Content-Type: application/json-patch+json" \
   --data-binary @ephemeral_container.json \
   http://localhost:8001/api/v1/namespaces/default/pods/<pod-name>/ephemeralcontainers
+
+
+kubectl config view --minify -o jsonpath='{.users[0].user.auth-provider.config.access-token}'
+kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'
+curl -XPATCH \
+  -H "Authorization: Bearer $(kubectl config view --minify -o jsonpath='{.users[0].user.auth-provider.config.access-token}')" \
+  -H "Content-Type: application/strategic-merge-patch+json" \
+  --data-binary @patch-ephemeral.json \
+  https://34.123.45.67/api/v1/namespaces/default/pods/<pod-name>/ephemeralcontainers \
+  --cacert ~/.kube/cache/discovery/<...>/ca.crt
+
+
+kubectl config view --minify -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' | base64 -d > ca.crt
+--cacert ca.crt 
