@@ -9,3 +9,9 @@ spec:
     requests:
       storage: 10Gi
 java -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/path/to/dumps 
+
+
+curl -XPATCH \
+  -H "Content-Type: application/json-patch+json" \
+  --data-binary @ephemeral_container.json \
+  http://localhost:8001/api/v1/namespaces/default/pods/<pod-name>/ephemeralcontainers
