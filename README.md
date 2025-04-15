@@ -1,3 +1,9 @@
+mkdir -p ~/.vscode-server/bin/<commit-hash>
+cd ~/.vscode-server/bin/<commit-hash>
+
+curl -L "https://update.code.visualstudio.com/commit:<commit-hash>/server-linux-x64/stable" -o vscode-server.tar.gz
+
+
 
 You need to follow this link and select the name of the project you are working on. There, you will find a workspace dedicated to the project and its environments. Run the jobs located in this directory. If you are deploying the project in an environment other than HK, select the environment, e.g., india1, etc. In this subfolder, you will find jobs dedicated to that environment.
 
@@ -18,6 +24,10 @@ BigQuery Data Viewer (roles/bigquery.dataViewer): This is a basic role that allo
 BigQuery Job User (roles/bigquery.jobUser): This allows running queries in BigQuery, which may be necessary if the view requires running an additional query.
 Optionally, you can also assign the role BigQuery Read Session User (roles/bigquery.readSessionUser) if you're using the BigQuery Storage API.
 
+mkdir -p ~/.vscode-server/bin/<commit-hash>
+cd ~/.vscode-server/bin/<commit-hash>
+
+curl -L "https://update.code.visualstudio.com/commit:<commit-hash>/server-linux-x64/stable" -o vscode-server.tar.gz
 
 
 
@@ -39,7 +49,11 @@ locals {
       {
         disk_size = 100,                        # Default disk size if not provided
         tags      = { "Environment" = "default" } # Default tags if not provided
-      },
+      },mkdir -p ~/.vscode-server/bin/<commit-hash>
+cd ~/.vscode-server/bin/<commit-hash>
+
+curl -L "https://update.code.visualstudio.com/commit:<commit-hash>/server-linux-x64/stable" -o vscode-server.tar.gz
+
       vm_values
     )
   }
@@ -56,7 +70,11 @@ resource "aws_instance" "example" {
   root_block_device {
     volume_size = each.value.disk_size
   }
-}
+}mkdir -p ~/.vscode-server/bin/<commit-hash>
+cd ~/.vscode-server/bin/<commit-hash>
+
+curl -L "https://update.code.visualstudio.com/commit:<commit-hash>/server-linux-x64/stable" -o vscode-server.tar.gz
+
 
 
 
