@@ -1,0 +1,91 @@
+Assumptions:
+
+region1 is the failed region
+region2 is the surviving / healthy region
+
+Unity pipeline apps are deployed in region-specific namespaces (e.g., unity-region1, unity-region2)
+Cloud SQL is replicated from region1 (primary) to region2 (replica)
+Kafka is stretched across both regions, with controller quorum still maintained
+
+Step 1: Stop Workloads in Failed Region ( If Possible )
+Jenkins Job: <name-stop>
+
+Stop all Unity pipeline deployments in region1 namespaces
+Scale down or delete any remaining pods (if still partially reachable)
+Attempt to shut down Kafka brokers from region1 (if possible)
+Optionally stop passive Cloud SQL replicas (only if resource cleanup is needed)
+
+This prevents split-brain in Kafka and duplicated processing in Unity.
+  
+  
+Step 2: Stop Workloads in  Healthy Region
+Name: Jenkins Job <name-stop>
+
+Purpose:
+This job is responsible for gracefully shutting down all Unity pipeline workloads deployed in a specific region. It is a core step in the Disaster Recovery (DR) procedure, ensuring that the region is cleanly deactivated before failover or recovery operations.
+
+Context:
+  
+Each Unity pipeline application is deployed directly into Kubernetes namespaces per region. No CI/CD tooling is involved. The infrastructure relies on:
+
+Kafka clusters for messaging,
+Unity pipeline applications as core workloads,
+Cloud SQL as a backend database.
+
+Scope of Execution:
+
+The job operates across all Kubernetes namespaces within the selected region.
+It identifies and stops all Unity pipeline deployments and their dependencies.
+  
+Components Stopped:
+
+Kafka: All brokers and controllers in the region are terminated or scaled down.
+Unity Pipeline Application: All associated pods and services are stopped by scaling deployments/statefulsets to zero.
+Cloud SQL: Instances are stopped or disabled (when possible via API or Terraform).
+
+
+Step 3: Promote Cloud SQL Replica in region2
+Run this from a secure admin terminal:
+
+gcloud sql instances promote-replica <cloudsql-instance-region2>
+  
+Promotes the Cloud SQL replica in region2 to become the new primary
+Ensure application connection strings (if using PSC or private IP) resolve to the new primary
+
+Wait for promotion to complete and ensure new instance is writable.
+
+
+Step 4: Start Workloads in Surviving Region
+Jenkins Job: <name-start>
+
+Start Unity pipeline workloads in region2 (if not already running)
+Ensure all deployments and services are scaled and healthy
+Validate application logs and readiness/liveness probes
+Your services are now active and running fully in region2.
+
+Step 5: Update DNS / Internal Routing (if applicable)
+
+If using DNS-based routing, update records to point to region2 services
+If using internal service mesh or ingress, ensure routes prefer the healthy region
+Validate application-level connectivity and Cloud SQL database access
+
+Step 6: Monitor and Confirm Full Recovery
+
+Monitor Unity pipelines for normal operation
+Check Kafka metrics: consumer lag, partition states
+Confirm Cloud SQL queries are executing properly
+Alert stakeholders: recovery complete
+
+  
+Optional Step 7: Prepare for Re-integration of region1
+
+Once region1 is restored:
+  
+Rejoin Kafka brokers (after safe broker reset or rebalance)
+Create new Cloud SQL replica from region2 → region1
+Deploy Unity workloads again (in standby mode or disabled)
+
+
+  
+
+  
