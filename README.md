@@ -1,3 +1,6 @@
+Wishing you a joyful and restful Easter time filled with peace, health, and happiness. May this spring season bring you renewal and pleasant moments spent with family and friends.Warm regards!
+
+
 If you're using Google BigQuery, for a Service Account to be able to read data from a view, you should assign at least the following roles:
 
 BigQuery Data Viewer (roles/bigquery.dataViewer): This is a basic role that allows reading data in tables and views.
