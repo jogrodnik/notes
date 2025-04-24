@@ -1,3 +1,10 @@
+Record	Location	Purpose
+kafka-0.ms1.project-a.internal	Project A zone	Points to Region A Kafka
+kafka-0.ms1.project-b.internal	Project B zone	Points to Region B Kafka
+kafka-0.internal.com (CNAME)	Project C (central zone)	Switch target here during DR
+
+
+
 ### Variables
 PROJECT_ID=my-project
 SERVICE_ACCOUNT_EMAIL=example-service-account@my-project.iam.gserviceaccount.com
