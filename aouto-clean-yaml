@@ -1,0 +1,2 @@
+kubectl get ingress my-ingress -n default -o yaml | \
+yq eval 'del(.metadata.managedFields, .metadata.uid, .metadata.resourceVersion, .metadata.creationTimestamp, .metadata.generation, .status)' - > my-ingress.yaml
