@@ -1,2 +1,6 @@
 kubectl get ingress my-ingress -n default -o yaml | \
 yq eval 'del(.metadata.managedFields, .metadata.uid, .metadata.resourceVersion, .metadata.creationTimestamp, .metadata.generation, .status)' - > my-ingress.yaml
+
+
+yq eval '.spec.rules += [{"host":"ctrl-0.ala2.in.abb","http": .spec.rules[0].http}]' -i my-ingress.yaml
+
