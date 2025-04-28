@@ -1,3 +1,10 @@
+Testing the new Disaster Recovery (DR) procedure for the INDIA1 and INDIA2 projects.
+In this procedure, we use two independent Kafka clusters, one deployed in each region, rather than a stretched cluster across both regions.
+The key design principle is to rely on Cloud DNS updates to facilitate failover. This approach eliminates the need to modify Kafka broker addresses used by client applications and avoids reconfiguring CDC (Change Data Capture) settings.
+Client connections are based on predefined Private Service Connect (PSC) connections to the GKE Nginx Ingress in each region, enabling seamless regional switching through DNS changes alone.
+
+
+
 #!/bin/bash
 
 # Print table header
