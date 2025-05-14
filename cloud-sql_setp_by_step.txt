@@ -1,0 +1,9 @@
+Assumptions:
+
+Primary Cloud SQL instance (PostgreSQL) is in project prj1, region asia-south1.
+Cross-region read replica is in project prj1, region asia-south2.
+Project prj1 (in asia-south1) has the Cloud SQL primary instance and a PSC endpoint to it with DNS configured.
+Project prj1 is completely unavailable.
+Project prj2 (in asia-south2) has a Private Service Connect (PSC) endpoint to the read replica and internal DNS already configured.
+
+We want to promote the replica and redirect traffic in prj2.
