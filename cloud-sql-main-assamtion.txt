@@ -1,0 +1,48 @@
+In Cloud SQL, we create a cross-region read replica ( we have a primary in asia-south1 and a replica in asia-south2), that replica is:
+
+Asynchronously replicated (not synchronous)
+Read-only
+Not automatically promoted to primary if the original primary fails
+
+So, if the primary becomes unavailable (e.g., due to a regional outage), Google Cloud does not promote the replica for you automatically. We have to promote the replica manulay.
+
+Manual Promotion Workflow step by step
+
+1. Detect Failure
+Detect that the primary instance is unavailable.
+2. Promote the Replica
+What this does:
+
+Stops replication
+Converts the replica into a new, standalone primary
+Enables write capabilities
+Triggers a server CA certificate rotation (if needed)
+
+At this point, replication is broken — the old primary and new primary are now completely separate.
+
+3. Redirect Application Traffic
+
+Update your application or connection layer to point to the promoted replica:
+
+Update Private Service Connect (PSC) DNS records
+Or update Cloud SQL Auth Proxy instance names
+Or switch internal IPs, depending on your architecture
+
+4. Optional: Recreate New Replicas
+
+If the original primary comes back:
+It does NOT rejoin as a replica
+You must destroy or export its data
+Optionally create a new replica from the newly promoted instance
+
+5. Important Limitations
+------------------------------------------------------------------------------------
+     Topic	                                    Limitation
+------------------------------------------------------------------------------------
+Automatic failover               Not available
+Data loss	                       Possible — due to asynchronous replication (RPO > 0)
+Rejoin after promotion	         Not possible — original primary cannot be reconnected
+Connection redirect	             Manual (via DNS or app config)
+HA support on promoted replica	 Not automatically enabled — must enable after promotion
+IAM roles needed	               roles/cloudsql.admin or equivalent
+
