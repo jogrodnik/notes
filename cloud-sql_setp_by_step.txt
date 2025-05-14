@@ -7,3 +7,260 @@ Project prj1 is completely unavailable.
 Project prj2 (in asia-south2) has a Private Service Connect (PSC) endpoint to the read replica and internal DNS already configured.
 
 We want to promote the replica and redirect traffic in prj2.
+
+Disaster Recovery Procedure (Project prj1 failed)
+
+Setup Summary:
+
+Primary Cloud SQL instance: prj1, region asia-south1
+Cross-region read replica: prj1, region asia-south2
+PSC endpoint in prj2 (asia-south2) points to the replica with DNS (e.g. db-replica.internal)
+PSC endpoint in prj1 (asia-south1) points to the primary (now unreachable)
+
+Goal: Promote the replica and reroute all traffic in prj2 through its PSC endpoint to the new primary
+
+
+Step 1: Set gcloud to project prj1 (if available — skip if prj1 is fully down)
+(If project prj1 is not accessible, skip to Step 2 and contact GCP support if IAM credentials need recovery.)
+
+gcloud config set project prj1
+
+Step 2: Promote the read replica (now new primary)
+If project prj1 is still partially accessible (e.g. IAM/API works):
+
+gcloud sql instances promote-replica REPLICA_INSTANCE_NAME \
+  --project=prj1
+
+If prj1 is fully inaccessible (e.g. permissions or billing issues), contact GCP support. The promotion must happen in prj1.
+Wait for the promotion operation to complete:
+
+gcloud sql opegcloud sql instances describe REPLICA_INSTANCE_NAME \
+  --project=prj1 \
+  --format="value(settings.availabilityType, state, ipAddresses)"
+rations list \
+  --project=prj1 \
+  --instance=REPLICA_INSTANCE_NAME
+
+Step 3: Confirm the replica is now writable
+
+gcloud sql instances describe REPLICA_INSTANCE_NAME \
+  --project=prj1 \
+  --format="value(settings.availabilityType, state, ipAddresses)"
+
+Look for:
+
+  state: RUNNABLE
+  availabilityType: REGIONAL (optional, can enable later)
+  ipAddresses: Should show PRIVATE (via PSC)
+
+Step 4: Update DNS records in prj2 (DNS is internal)
+  You already have a PSC IP in asia-south2 pointing to the former replica.
+  Update the DNS record db.internal.example.com (or equivalent) to point to this PSC IP.
+
+If using Cloud DNS private zone:
+
+gcloud dns record-sets transaction start --zone=your-zone --project=prj2
+
+gcloud dns record-sets transaction remove \
+  --name=db.internal.example.com. \
+  --type=A \
+  --ttl=30 \
+  --zone=your-zone \
+  --project=prj2 \
+  --rrdatas=OLD_IP
+
+gcloud dns record-sets transaction add \
+  --name=db.internal.example.com🪛 Step 5: Restart Cloud SQL Auth Proxy (if used). \
+  --type=A \
+  --ttl=30 \
+  --zone=your-zone \
+  --project=prj2 \
+  --rrdatas=REPLICA_PSC_IP
+
+gcloud dns record-sets transaction execute --zone=your-zone --project=prj2
+
+Step 5: Restart Cloud SQL Auth Proxy (if used)
+If you’re using the Cloud SQL Auth Proxy in prj2, it will need to point to the new connection name:
+
+gcloud sql instances describe REPLICA_INSTANCE_NAME \
+  --project=prj1 \
+  --format="value(connectionName)"
+
+Then restart the proxy with:
+
+./cloud-sql-proxy \
+  --address 127.0.0.1 \
+  --port 5432 \
+  "PROJECT_ID:REGION:REPLICA_INSTANCE_NAME" \
+  --private-ip
+You can also deploy this as a sidecar in GKE or VM startup script.
+
+Step 6: Test application connectivity
+From a VM or Pod in project prj2:
+
+psql "host=db.internal.example.com user=youruser dbname=yourdb sslmode=require"
+
+Or use JDBC/Cloud SQL Auth Proxy as configured.
+
+Step 7 (Optional): Enable backups and HA on the promoted instance
+
+By default, backups are disabled when a replica is promoted.
+Enable backups:
+
+gcloud sql instances patch REPLICA_INSTANCE_NAME \
+  --backup-start-time=23:00 \
+  --enable-bin-log \
+  --project=prj1
+
+Enable high availability:
+
+gcloud sql instances patch REPLICA_INSTANCE_NAME \
+  --availability-type=REGIONAL \
+  --project=prj1
+
+Step 8 (Optional): Decommission or recreate original instance
+When prj1 is restored:
+
+The original primary cannot be reused as a replica.
+When prj1 is restored:
+Optionally delete it, or recreate a new read replica from the new primary.
+
+
+Situation: Project prj1 is Fully Inaccessible
+
+Project IAM roles revoked
+Project disabled or suspended (e.g. billing)
+API requests to Cloud SQL Admin API in prj1 fail
+You cannot promote the read replica via gcloud or Console
+
+What You CANNOT access project1
+
+You cannot:
+
+Promote the replica (Cloud SQL Admin API call must be made in project prj1)
+Create new replicasOption 3: Migrate to a New Project (Long Term)
+If prj1 will remain unrecoverable, plan to:
+
+Dump and restore replica data into a Cloud SQL instance in prj2
+
+Recreate schema, users, and connections
+
+Migrate PSC and DNS fully to prj2
+
+This effectively “moves” your database to a new project.
+Reconfigure Cloud SQL settings (e.g. HA, backups, users)
+Access logs or metrics of the instance in prj1
+
+
+Contact GCP Support Immediately
+
+Option 1: If this is a real emergency (e.g., project prj1 was suspended or deleted by mistake or due to organization policy), contact Google Cloud Support:
+https://console.cloud.google.com/support
+Ask for “Emergency restoration of access to project prj1 to promote cross-region replica”
+Provide project number of prj1 and replica name
+If you are an enterprise customer with a support plan, you can escalate priority.
+
+Option 2: Use the Replica as a Standalone (Read-Only)
+
+If you cannot promote the replica but still have urgent business needs:
+Continue serving read-only workloads via the replica PSC endpoint in prj2
+Set up a new Cloud SQL instance in prj2 and migrate data via dump/restore
+Steps:
+
+1. Dump the replica data:
+   pg_dump -h <replica-psc-ip> -U postgres -F c -d dbname > backup.dump
+
+2. Create a new Cloud SQL PostgreSQL instance in prj2.
+3. Restore the dump:
+   pg_restore -h <new-db-ip> -U postgres -d newdb backup.dump
+
+
+
+Option 3: Migrate to a New Project (Long Term)
+  If prj1 will remain unrecoverable, plan to:
+  Dump and restore replica data into a Cloud SQL instance in prj2
+  Recreate schema, users, and connections
+  Migrate PSC and DNS fully to prj2
+  Option 2: Use the Replica as a Standalone (Read-Only)
+  If you cannot promote the replica but still have urgent business needs:
+  
+  Continue serving read-only workloads via the replica PSC endpoint in prj2
+  
+  Set up a new Cloud SQL instance in prj2 and migrate data via dump/restore
+  This effectively “moves” your database to a new project.
+
+This is the only way to gain access to promote the replica if prj1 is locked.
+
+#!/bin/bash
+
+# --- Configuration ---
+REPLICA_INSTANCE_NAME="replica-sql-instance"
+PSC_IP="10.42.0.12"                             # PSC endpoint IP for replica in prj2
+DNS_NAME="db.internal.example.com."            # Fully qualified DNS name (with trailing dot)
+DNS_ZONE="internal-db-zone"                    # Cloud DNS private zone name in prj2
+PROJECT_REPLICA="prj1"
+PROJECT_DNS="prj2"
+REGION="asia-south2"
+
+# --- Promote the replica ---
+echo "\n🟢 Promoting read replica to standalone primary in $PROJECT_REPLICA..."
+gcloud sql instances promote-replica "$REPLICA_INSTANCE_NAME" \
+  --project="$PROJECT_REPLICA"#!/bin/bash
+
+if [ $? -ne 0 ]; then
+  echo "❌ Failed to promote replica. Exiting."
+  exit 1
+fi
+
+# --- Wait for promotion to complete ---
+echo "\n⏳ Waiting for replica promotion to complete..."
+while true; do
+  STATE=$(gcloud sql instances describe "$REPLICA_INSTANCE_NAME" \
+    --project="$PROJECT_REP#!/bin/bashLICA" \
+    --format="value(state)")
+  if [[ "$STATE" == "RUNNABLE" ]]; then
+    echo "✅ Promotion completed."
+    break
+  fi
+  sleep 5
+done
+
+# --- DNS Update ---
+echo "\n🛠 Updating DNS A record in $PROJECT_DNS for $DNS_NAME to $PSC_IP"
+gcloud dns record-sets transaction start --zone="$DNS_ZONE" --project="$PROJECT_DNS"
+
+# Check for existing A record
+EXISTING_RECORD=$(gcloud dns record-sets list \
+  --zone="$DNS_ZONE" \
+  --name="$DNS_NAME" \
+  --type=A \
+  --project="$PROJECT_DNS" \
+  --format="value(rrdatas)")
+
+if [ -n "$EXISTING_RECORD" ]; then
+  echo "🗑 Removing existing A record pointing to: $EXISTING_RECORD"
+  gcloud dns record-sets transaction remove \
+    --name="$DNS_NAME" \
+    --type=A \
+    --ttl=30 \
+    --zone="$DNS_ZONE" \
+    --project="$PROJECT_DNS" \
+    --rrdatas="$EXISTING_RECORD"
+fi
+
+echo "➕ Adding new A record for $DNS_NAME -> $PSC_IP"
+gcloud dns record-sets transaction add \
+  --name="$DNS_NAME" \
+  --type=A \
+  --ttl=30 \
+  --zone="$DNS_ZONE" \
+  --project="$PROJECT_DNS" \
+  --rrdatas="$PSC_IP"
+
+gcloud dns record-sets transaction execute --zone="$DNS_ZONE" --project="$PROJECT_DNS"
+
+echo "\n🎯 DR promotion and DNS update complete."
+exit 0
+
+
+
