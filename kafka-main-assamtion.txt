@@ -31,7 +31,18 @@ PSC endpoints in both Prj1 and Prj2 are reachable from all client environments v
 2. Disaster Recovery (DR) Objective
 The goal is to implement a robust disaster recovery (DR) strategy that enables seamless failover of Kafka services from Prj1 (primary region) to Prj2 (secondary region) without requiring any changes on the client side.
 
-Failover Strategy
+Failover StrategyDNS Reconfiguration for Disaster Recovery
+Update the CNAME records for the following fully qualified domain names:
+
+broker.kafka.project.com
+
+controller.kafka.project.com
+
+schema.kafka.project.com
+
+Redirect each record to resolve to the Private Service Connect (PSC) endpoint of the Ingress Controller hosted in the disaster recovery environment (Prj2).
+
+This DNS update ensures that all client traffic is transparently routed to the standby Kafka infrastructure without requiring any modifications on the client side.
 In the event of a service outage or failure in Prj1, Kafka traffic should be redirected to Prj2 using the following actions:
 centralized
 Cloud DNS Redirection: Update the CNAME records for:
@@ -42,7 +53,56 @@ controller.kafka.project.com
 
 schema.kafka.project.com
 to point to the PSC endpoint of the Ingress Controller deployed in Prj2.
+DNS Reconfiguration for Disaster Recovery
+Update the CNAME records for the following fully qualified domain names:
 
+broker.kafka.project.com
+
+controller.kafka.project.com
+
+schema.kafka.project.com
+
+Redirect each record to resolve to the Private Service Connect (PSC) endpoint of the Ingress Controller hosted in the disaster recovery environment (Prj2).
+
+This DNS update ensures that all client traffic is transparently routed to the standby Kafka infrastructure without requiring any modifications on the client side.DNS Reconfiguration for Disaster Recovery
+Update the CNAME records for the following fully qualified domain names:
+
+broker.kafka.project.com
+
+controller.kafka.project.com
+
+schema.kafka.project.com
+
+Redirect each record to resolve to the Private Service Connect (PSC) endpoint of the Ingress Controller hosted in the disaster recovery environment (Prj2).
+
+This DNS update ensures that all client traffic is transparently routed to the standby Kafka infrastructure without requiring any modifications on the client side.DNS Reconfiguration for Disaster Recovery
+Update the CNAME records for the following fully qualified domain names:
+
+broker.kafka.project.com
+
+controller.kafka.project.com
+
+schema.kafka.project.com
+
+Redirect each record to resolve to the Private Service Connect (PSC) endpoint of the Ingress Controller hosted in the disaster recovery environment (Prj2).
+
+This DNS update ensures that all client traffic is transparently routed to the standby Kafka infrastructure without requiring any modifications on the client side.
 Ingress Reconfiguration: Reconfigure the NGINX Ingress controllers in every affected namespace within Prj2 to ensure correct routing of Kafka services.
 
 Since DNS records remain unchanged from the client perspective, the failover will be transparent to all CDC pipelines, Unity applications, and external consumers, ensuring continuous service availability.
+
+
+
+
+DNS Reconfiguration for Disaster Recovery
+Update the CNAME records for the following fully qualified domain names:
+
+broker.kafka.project.com
+
+controller.kafka.project.com
+
+schema.kafka.project.com
+
+Redirect each record to resolve to the Private Service Connect (PSC) endpoint of the Ingress Controller hosted in the disaster recovery environment (Prj2).
+
+This DNS update ensures that all client traffic is transparently routed to the standby Kafka infrastructure without requiring any modifications on the client side.
