@@ -21,3 +21,14 @@ PENDING – The request is waiting for the service producer to accept it.
 
 REJECTED – The request was denied by the service producer.
 
+
+Run 
+Run a Jenkins job that enables the deployment of a Kafka cluster configured to operate in disaster recovery (DR) mode. This cluster is an independent Kafka instance (including controller, broker, and schema registry) deployed for each project namespace, with a properly configured Ingress Controller service.
+
+To install such a cluster for a specific project, you need to select the appropriate pair of projects in the infra_project field. If you're installing the cluster for proj1, the first project in the list should be prj1, and the second should be the DR project prj2.
+
+Next, enable two parameters:
+
+enable_dr_mode – switches the configuration generator into DR mode.
+
+create_only_dr_cluster – installs the cluster for the specified Unity project (namespace) with the correct configuration.
