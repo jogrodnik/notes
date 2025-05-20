@@ -1,0 +1,23 @@
+How to Check the Status of a PSC Endpoint
+
+In Google Cloud, a Private Service Connect (PSC) endpoint is represented by a forwarding rule in the consumer project. To check the status of a PSC connection (i.e., whether it's active and accepted by the service producer), follow these steps:
+
+Identify the PSC Forwarding Rule:
+
+PSC endpoints appear as forwarding rules in your GCP project that point to a service attachment. You can find them by listing all forwarding rules and filtering for those that target service attachments.
+
+Describe the Forwarding Rule:
+
+Once you've identified the correct forwarding rule, use the gcloud compute forwarding-rules describe command to inspect it.
+
+Check the pscConnectionStatus Field:
+
+In the output of the describe command, look for a field called pscConnectionStatus. This field contains information about the connection status between your PSC endpoint and the producer’s service attachment.
+
+🔄 Connection Status Values
+ACCEPTED – The connection is active. The producer has accepted your request, and traffic is flowing.
+
+PENDING – The request is waiting for the service producer to accept it.
+
+REJECTED – The request was denied by the service producer.
+
