@@ -1,0 +1,104 @@
+Cloud-Native Architecture Description: GKE, Kafka, Cloud SQL, PSC, and DNS-Based Failover Across Regions
+1. Purpose and Context
+This architecture is designed to ensure high availability, scalability, and failover readiness of cloud-native applications deployed across two GCP projects and regions:
+
+Project1 in asia-south1
+
+Project2 in asia-south2
+
+It enables business continuity in case of regional outages by deploying key components such as GKE clusters, Kafka, Cloud SQL, and Ingress controllers in both locations. Internal-only communication is enforced using Private Service Connect (PSC) and private DNS peering across projects.
+
+2. Regional Distribution and Roles
+Project1 (asia-south1) – Primary
+Hosts the primary GKE cluster running Kafka and Unity workloads.
+
+Hosts the Cloud SQL primary instance.
+
+Exposes services using NGINX Ingress + PSC.
+
+Manages the default PSC DNS endpoints (e.g. broker.kafka.project.com) under normal conditions.
+
+Project2 (asia-south2) – Secondary / DR
+Hosts a GKE cluster with a standby Kafka stack and DR-ready workloads.
+
+Hosts the Cloud SQL read replica.
+
+Provides backup PSC endpoints for Kafka and SQL services.
+
+Ready to take over in the event of a regional outage of Project1.
+
+3. Kafka and GKE Architecture
+GKE Clusters
+Deployed in both regions.
+
+Namespaced per application team (e.g., Unity projects).
+
+Each namespace includes:
+
+Kafka Broker
+
+Kafka Controller
+
+Schema Registry
+
+NGINX Ingress
+
+Service Exposure via PSC
+Kafka services are routed through the NGINX Ingress Controller.
+
+Ingress is exposed via Private Service Connect (PSC).
+
+Ensures internal-only, private, and secure access from clients across GCP.
+
+4. Cloud SQL Design
+The primary Cloud SQL instance is hosted in Project1 (asia-south1).
+
+A read replica is maintained in Project2 (asia-south2).
+
+Asynchronous replication is used (RPO > 0).
+
+GKE workloads access Cloud SQL through PSC endpoints using either:
+
+Internal IPs
+
+Cloud SQL Auth Proxy
+
+5. DNS and Private Connectivity
+DNS Setup
+Services use fixed Cloud DNS entries:
+
+broker.kafka.project.com
+
+controller.kafka.project.com
+
+schema.kafka.project.com
+
+These are managed via Cloud DNS CNAME records that resolve to PSC endpoints.
+
+Private DNS Zones
+Each project defines a private DNS zone.
+
+DNS zones are peered to a shared VPC DNS zone.
+
+This setup enables cross-project resolution and simplifies failover routing.
+
+6. Disaster Recovery Process
+Kafka Failover
+In the event of a failure in Project1:
+
+Update DNS CNAMEs to point to PSC endpoints in Project2.
+
+Ensure the NGINX Ingress in Project2 is active and properly routing.
+
+All clients continue using the same DNS names; no configuration changes are needed.
+
+Cloud SQL Failover
+If asia-south1 becomes unavailable:
+
+Manually promote the read replica in Project2.
+
+Update connection strings or DNS entries to point to the promoted instance.
+
+Create new replicas from the new primary if needed.
+
+⚠️ Once promoted, the original primary cannot rejoin replication.
