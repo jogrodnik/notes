@@ -1,3 +1,5 @@
+https://chatgpt.com/share/68374aa8-4a88-8000-a817-dc88ff8b74c4
+
 In Cloud SQL, we create a cross-region read replica ( we have a primary in asia-south1 and a replica in asia-south2), that replica is:
 
 Asynchronously replicated (not synchronous)
