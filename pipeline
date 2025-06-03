@@ -1,0 +1,64 @@
+properties([
+    parameters([
+        choice(choices: ['Development','QA'], description: 'Select Deployment Environment', name: 'DEPLOYMENT_ENVIRONMENT'),
+        choice(choices: ['release','snapshot'], description: 'Select Nexus Repo', name: 'NEXUS_REPO'),
+        [$class: 'CascadeChoiceParameter', 
+        choiceType: 'PT_SINGLE_SELECT', 
+        filterLength: 1, 
+        filterable: false, 
+        name: 'ARTIFACT_VERSION', 
+        randomName: 'choice-parameter-7777777777777777', 
+        referencedParameters: 'NEXUS_REPO', 
+        script: [
+            $class: 'GroovyScript', 
+            fallbackScript: [
+                classpath: [], 
+                oldScript: '', 
+                sandbox: true, 
+                script: ''
+                ], 
+            script: [
+                classpath: [], 
+                oldScript: '',   
+                sandbox: true, 
+                script: '''import groovy.json.JsonSlurper
+                           try{
+                              if (NEXUS_REPO=="release") {
+                               def nexus_url="https://nexus.mydomain.com/nexus/service/rest/v1/search?repository=release&group=org.common&name=common_artifact"
+
+                               def response=nexus_url.toURL().text
+                               def metadata = new JsonSlurper().parseText(response)
+                               metadata["items"]["version"].reverse()
+                           } else {
+                               def nexus_url="https://nexus.mydomain.com/nexus/service/rest/v1/search?repository=snapshot&group=org.common&name=common_artifact"
+                               
+                               def response=nexus_url.toURL().text
+                               def metadata = new JsonSlurper().parseText(response)
+                               metadata["items"]["version"].reverse()
+                           }
+                           }catch(e){ return [e.toString()] }'''
+                    ]
+                ]
+            ]
+        ])
+
+])
+pipeline {
+    agent any
+	
+    stages{    
+		stage('Download Nexus Artifact') {
+		    steps {    
+              script {
+                 // Code for Artifact download referencing parameter 'ARTIFACT_VERSION'
+              }
+            }
+		} 
+	    stage('Deploy to Azure') {
+            steps { 
+                // Code to deploy the artifact on Azure Springs App
+	        }
+        }
+	} 
+		
+} 
