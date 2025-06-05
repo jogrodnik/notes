@@ -1,0 +1,4 @@
+<commit-hash> - windows about 
+wget https://update.code.visualstudio.com/commit:<commit-hash>/server-linux-x64/stable -O vscode-server.tar.gz
+mkdir -p ~/.vscode-server/bin/<commit-hash>
+tar -xzf vscode-server.tar.gz -C ~/.vscode-server/bin/<commit-hash> --strip-components=1
