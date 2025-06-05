@@ -1,6 +1,9 @@
 mkdir -p ~/.vscode-server/bin/<commit-hash>
 cd ~/.vscode-server/bin/<commit-hash>
 
+
+wget https://update.code.visualstudio.com/commit:17baf841131aa23349f217ca7c570c76ee87b957/server-linux-x64/stable -O vscode-server.tar.gz
+
 curl -L "https://update.code.visualstudio.com/commit:<commit-hash>/server-linux-x64/stable" -o vscode-server.tar.gz
 
 
