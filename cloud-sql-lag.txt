@@ -1,0 +1,73 @@
+#!/bin/bash
+
+set -euo pipefail
+
+# === CONFIGURATION ===
+PROJECT_ID="your-gcp-project-id"
+REGION="your-region"                        # e.g. us-central1
+INSTANCE_NAME="your-sql-instance"
+INSTANCE_CONNECTION_NAME="${PROJECT_ID}:${REGION}:${INSTANCE_NAME}"
+PG_USER="iam:your-gsa@${PROJECT_ID}.iam.gserviceaccount.com"
+PG_DB="postgres"
+NAMESPACE="ns1"
+KSA="admin"                                 # Your KSA in ns1
+POD_NAME="cloudsql-lag-check"
+TMP_YAML="$(mktemp /tmp/${POD_NAME}-XXXX.yaml)"
+
+# === Cleanup function ===
+cleanup() {
+  echo "🧹 Cleaning up..."
+  kubectl delete pod "$POD_NAME" -n "$NAMESPACE" --ignore-not-found
+  rm -f "$TMP_YAML"
+}
+trap cleanup EXIT
+
+# === Generate Pod YAML ===
+cat <<EOF > "$TMP_YAML"
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ${POD_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  serviceAccountName: $KSA
+  restartPolicy: Never
+  containers:
+  - name: proxy
+    image: gcr.io/cloudsql-docker/gce-proxy:1.33.11
+    command:
+      - "/cloud_sql_proxy"
+      - "-auto-iam-authn"
+      - "-instances=${INSTANCE_CONNECTION_NAME}=tcp:5432"
+    securityContext:
+      runAsNonRoot: true
+  - name: checker
+    image: postgres:15
+    command:
+      - "sh"
+      - "-c"
+      - |
+        echo "⏳ Waiting for Cloud SQL Auth Proxy..."
+        sleep 10
+        echo "🔍 Checking replication lag..."
+        psql -h 127.0.0.1 -U "${PG_USER}" -d ${PG_DB} -c \
+        "SELECT now() - pg_last_xact_replay_timestamp() AS replication_lag;"
+    securityContext:
+      runAsNonRoot: true
+EOF
+
+# === Deploy Pod ===
+echo "🚀 Deploying Pod in namespace ${NAMESPACE} with KSA ${KSA}..."
+kubectl apply -f "$TMP_YAML"
+
+# === Wait for Pod completion ===
+echo "⏳ Waiting for Pod to complete..."
+if ! kubectl wait --for=condition=Succeeded pod/"$POD_NAME" -n "$NAMESPACE" --timeout=90s; then
+  echo "❌ Pod failed. Logs:"
+  kubectl logs "$POD_NAME" -n "$NAMESPACE" -c checker || true
+  exit 1
+fi
+
+# === Get logs ===
+echo "📋 Replication lag:"
+kubectl logs "$POD_NAME" -n "$NAMESPACE" -c checker
