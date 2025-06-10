@@ -1,0 +1,89 @@
+
+#!/bin/bash
+
+set -euo pipefail
+
+patch_configmap() {
+  local CONFIGMAP_NAME="$1"
+  local NAMESPACE="$2"
+  local PSC_DB_NAME="$3"
+
+  echo "Patching ConfigMap '$CONFIGMAP_NAME' in namespace '$NAMESPACE'..."
+
+  PATCH_PAYLOAD=$(jq -nc --arg name "$PSC_DB_NAME" '{data: {commonNameDB: $name}}')
+
+  if kubectl patch configmap "$CONFIGMAP_NAME" \
+      -n "$NAMESPACE" \
+      --type=merge \
+      -p "$PATCH_PAYLOAD"
+  then
+    echo "commonNameDB set to '${PSC_DB_NAME}'"
+  else
+    echo "Failed to patch ConfigMap" >&2
+    exit 2
+  fi
+}
+
+# Call the function with provided arguments
+patch_configmap "$@"
+
+pipeline {
+    agent any
+    stages {
+        stage('Patch ConfigMap') {
+            steps {
+                // If you need to install jq or kubectl, do it here
+                sh './patch_configmap.sh my-configmap my-namespace my-db-name'
+            }
+        }
+    }
+}
+
+
+=======================================================================================================
+
+
+pipeline {
+    agent any
+
+    environment {
+        // Optionally define ENV variables, or use parameters instead
+        CONFIGMAP_NAME = 'my-configmap'
+        NAMESPACE      = 'my-namespace'
+        PSC_DB_NAME    = 'my-db-name'
+    }
+
+    stages {
+        stage('Patch ConfigMap') {
+            steps {
+                sh '''
+                  set -euo pipefail
+
+                  patch_configmap() {
+                    local CONFIGMAP_NAME="$1"
+                    local NAMESPACE="$2"
+                    local PSC_DB_NAME="$3"
+
+                    echo "Patching ConfigMap '$CONFIGMAP_NAME' in namespace '$NAMESPACE'..."
+
+                    PATCH_PAYLOAD=$(jq -nc --arg name "$PSC_DB_NAME" '{data: {commonNameDB: $name}}')
+
+                    if kubectl patch configmap "$CONFIGMAP_NAME" \
+                        -n "$NAMESPACE" \
+                        --type=merge \
+                        -p "$PATCH_PAYLOAD"
+                    then
+                      echo "commonNameDB set to '${PSC_DB_NAME}'"
+                    else
+                      echo "Failed to patch ConfigMap" >&2
+                      exit 2
+                    fi
+                  }
+
+                  # Call the function with environment variables
+                  patch_configmap "$CONFIGMAP_NAME" "$NAMESPACE" "$PSC_DB_NAME"
+                '''
+            }
+        }
+    }
+}
