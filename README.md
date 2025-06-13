@@ -1,6 +1,8 @@
 mkdir -p ~/.vscode-server/bin/<commit-hash>
 cd ~/.vscode-server/bin/<commit-hash>
 
+kubectl patch scaledobject <name> -p '{"metadata":{"finalizers":[]}}' --type=merge
+
 <commit-hash> - windows about 
 wget https://update.code.visualstudio.com/commit:<commit-hash>/server-linux-x64/stable -O vscode-server.tar.gz
 mkdir -p ~/.vscode-server/bin/<commit-hash>
