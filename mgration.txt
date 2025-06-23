@@ -1,1 +1,36 @@
 Could you recommend the best structure during migration from 013 to 157 terraform modules? One module can call another one.  I need beast solution for time of migration. I want use modules during migration
+
+Here’s a recommended architecture and process that supports:
+
+✅ Parallel use of 0.13 and 1.5.7
+
+✅ Gradual migration of modules
+
+✅ Reusability
+
+✅ Clear separation of legacy and modern code
+
+terraform/
+├── modules/
+│   ├── legacy/                   # Modules compatible with 0.13
+│   │   ├── network/
+│   │   └── compute/
+│   ├── upgraded/                 # Modules refactored for 1.5.7
+│   │   ├── network/
+│   │   └── compute/
+│   └── shared/                   # Modules that are compatible with both
+│       └── utils/
+├── stacks/
+│   ├── 013/                      # Environments still on Terraform 0.13
+│   │   ├── dev/
+│   │   │   ├── main.tf
+│   │   │   └── .terraform-version → 0.13.7
+│   ├── 157/                      # Environments moved to Terraform 1.5.7
+│   │   ├── dev/
+│   │   │   ├── main.tf
+│   │   │   └── .terraform-version → 1.5.7
+├── shared-state/                # Remote backend configs, shared outputs, etc.
+└── tools/
+    └── wrapper.sh               # Optional automation script
+
+
