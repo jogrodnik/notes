@@ -1,0 +1,1 @@
+Could you recommend the best structure during migration from 013 to 157 terraform modules? One module can call another one.  I need beast solution for time of migration. I want use modules during migration
