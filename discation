@@ -19,3 +19,17 @@ done
 
 echo "Certificates extracted to $OUTPUT_DIR/"
 
+awk '{
+  lines[NR] = $0
+}
+END {
+  for (i = 1; i <= NR; i++) {
+    if (lines[i] ~ /^BEGIN/ && lines[i+1] ~ /^BEGIN/) {
+      continue
+    } else if (i > 1 && lines[i-1] ~ /^BEGIN/ && lines[i] ~ /^BEGIN/) {
+      continue
+    } else {
+      print lines[i]
+    }
+  }
+}' file.txt
