@@ -1,0 +1,357 @@
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+# velero-lite.sh  ·  v1.2.0   (2025‑07‑03)
+# -----------------------------------------------------------------------------
+# A portable, single‑file backup / restore helper for Kubernetes namespaces.
+# It requires only common CLI tools and produces a tar.gz archive that contains
+# everything you need to recreate the namespace in any cluster:
+#   • all namespaced resources (Deployments, Secrets, etc.)
+#   • Helm release manifests (optional)
+#   • CRDs and cluster‑scoped RBAC referenced by the namespace
+#   • optional PVC data via VolumeSnapshot or Restic
+# -----------------------------------------------------------------------------
+# MIT License – use at your own risk.
+# -----------------------------------------------------------------------------
+
+set -Eeuo pipefail
+shopt -s lastpipe   # allow while‑read loops in current shell
+
+# -----------------------------------------------------------------------------
+# Default settings (override via env or CLI)
+# -----------------------------------------------------------------------------
+BACKUP_DEST="${BACKUP_DEST:-./k8s-backups}"
+BACKUP_PREFIX="${BACKUP_PREFIX:-k8s}"
+DEFAULT_NS="${DEFAULT_NS:-default}"
+SNAPSHOT_CLASS="${SNAPSHOT_CLASS:-}"        # blank ⇒ skip CSI snapshots
+RESTIC_REPOSITORY="${RESTIC_REPOSITORY:-}"  # blank ⇒ skip Restic
+RETENTION_DAYS="${RETENTION_DAYS:-30}"
+PARALLEL_JOBS="${PARALLEL_JOBS:-6}"
+USE_COLOR="${COLOR:-true}"
+
+# -----------------------------------------------------------------------------
+# Colour helpers (disable if not a TTY or COLOR=false)
+# -----------------------------------------------------------------------------
+if $USE_COLOR && test -t 2; then
+  RED=$'\e[31m'; YELLOW=$'\e[33m'; GREEN=$'\e[32m'; BLUE=$'\e[34m'; RESET=$'\e[0m'
+else
+  RED=""; YELLOW=""; GREEN=""; BLUE=""; RESET=""
+fi
+
+log()   { printf "%s %b%s%b\n" "$(date +%FT%T%z)" "$2" "$1" "$RESET" >&2; }
+info()  { log "$1" "$BLUE"; }
+warn()  { log "$1" "$YELLOW"; }
+error() { log "$1" "$RED"; }
+ok()    { log "$1" "$GREEN"; }
+
+die()   { error "$1"; exit 1; }
+need()  { command -v "$1" >/dev/null || die "Binary '$1' is required"; }
+
+# run CMD… – honour global DRY_RUN flag
+run() {
+  if $DRY_RUN; then printf "(dry‑run) %q " "$@"; echo; else "$@"; fi
+}
+
+# par CMD… – run in background, respecting PARALLEL_JOBS limit
+par() {
+  local lim=$PARALLEL_JOBS
+  while (( $(jobs -pr | wc -l) >= lim )); do sleep 0.2; done
+  "$@" &
+}
+
+trap 'warn "Caught signal – terminating"; jobs -pr | xargs -r kill 2>/dev/null' INT TERM
+
+# -----------------------------------------------------------------------------
+# CLI parsing
+# -----------------------------------------------------------------------------
+show_help() {
+  cat <<EOF
+Usage: $0 COMMAND [options]
+
+Commands
+  backup          create an archive (default)
+  restore         recreate from an archive (needs --file)
+  list            list archives in \$BACKUP_DEST
+  prune           delete archives older than \$RETENTION_DAYS days
+
+Common options
+  -n, --namespace NS   namespace to operate on (default: $DEFAULT_NS)
+  -l, --label SEL      kubectl label selector for resources
+      --name NAME      override generated archive name
+      --pvc-data       include persistent volume data
+      --no-crd         skip exporting CRDs
+      --encrypt        gpg‑encrypt archive (needs GPG_PASSPHRASE)
+      --dest PATH      override \$BACKUP_DEST for this run
+      --dry-run        show commands but do nothing
+  -v, --verbose        shell trace for debugging
+
+Restore‑only
+      --file FILE      archive to restore
+EOF
+}
+
+OPTS=$(getopt -o n:l:v -l namespace:,label:,name:,pvc-data,no-crd,dest:,file:,dry-run,encrypt,help,verbose -n "velero-lite" -- "$@") || {
+  show_help; exit 1; }
+
+# shellcheck disable=SC2086
+eval set -- "$OPTS"
+
+NS="$DEFAULT_NS"; LABEL=""; BACKUP_NAME=""; INCLUDE_PVC=false;
+SKIP_CRD=false; DRY_RUN=false; VERBOSE=false; FILE=""; ENCRYPT=false
+
+while true; do
+  case "$1" in
+    -n|--namespace) NS="$2"; shift 2;;
+    -l|--label)     LABEL="$2"; shift 2;;
+    --name)         BACKUP_NAME="$2"; shift 2;;
+    --pvc-data)     INCLUDE_PVC=true; shift;;
+    --no-crd)       SKIP_CRD=true; shift;;
+    --dest)         BACKUP_DEST="$2"; shift 2;;
+    --file)         FILE="$2"; shift 2;;
+    --dry-run)      DRY_RUN=true; shift;;
+    -v|--verbose)   VERBOSE=true; shift;;
+    --encrypt)      ENCRYPT=true; shift;;
+    --help)         show_help; exit 0;;
+    --) shift; break;;
+    *) die "Unknown flag $1";;
+  esac
+done
+
+$VERBOSE && set -x
+CMD="${1:-backup}"; shift || true
+
+# -----------------------------------------------------------------------------
+# Utility: remove volatile fields so kubectl apply works cleanly
+# -----------------------------------------------------------------------------
+clean_json() {
+  jq 'del(
+       .items[].metadata.managedFields,
+       .items[].metadata.creationTimestamp,
+       .items[].metadata.resourceVersion,
+       .items[].metadata.uid,
+       .items[].metadata.annotations."kubectl.kubernetes.io/last-applied-configuration"
+     )'
+}
+
+# -----------------------------------------------------------------------------
+# PVC collection helpers
+# -----------------------------------------------------------------------------
+collect_snapshot() {
+  local pvc=$1 base=$2 snap="vs-$pvc-$(date +%s)"
+  cat <<YAML | run kubectl apply -f -
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: $snap
+  namespace: $NS
+spec:
+  volumeSnapshotClassName: $SNAPSHOT_CLASS
+  source:
+    persistentVolumeClaimName: $pvc
+YAML
+  run kubectl wait --for=condition=ready volumesnapshot/$snap -n "$NS" --timeout=5m
+  run kubectl get volumesnapshot $snap -n "$NS" -o yaml > "$base/pvc-$pvc-snapshot.yaml"
+}
+
+collect_restic() {
+  local pvc=$1 base=$2 pod="restic-$pvc-$(date +%s)"
+  cat <<YAML | run kubectl apply -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: $pod
+  namespace: $NS
+spec:
+  restartPolicy: Never
+  volumes:
+  - name: target
+    persistentVolumeClaim:
+      claimName: $pvc
+  containers:
+  - name: restic
+    image: restic/restic:latest
+    command: ["/bin/sh","-c","restic backup /data --tag $pvc && sleep 1"]
+    env:
+    - name: RESTIC_REPOSITORY
+      value: $RESTIC_REPOSITORY
+    - name: RESTIC_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: restic-secret
+          key: password
+    volumeMounts:
+    - name: target
+      mountPath: /data
+      readOnly: true
+YAML
+  run kubectl wait pod/$pod -n "$NS" --for=condition=Succeeded --timeout=15m
+  run kubectl logs $pod -n "$NS" >> "$base/restic.log" || true
+  run kubectl delete pod/$pod -n "$NS" --ignore-not-found
+}
+
+backup_pvcs() {
+  local base=$1
+  mapfile -t pvcs < <(kubectl -n "$NS" get pvc -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')
+  for pvc in "${pvcs[@]}"; do
+    info "Including PVC $pvc"
+    if [[ -n $SNAPSHOT_CLASS ]]; then
+      par collect_snapshot "$pvc" "$base"
+    elif [[ -n $RESTIC_REPOSITORY ]]; then
+      par collect_restic "$pvc" "$base"
+    else
+      warn "Skipping PVC $pvc – no snapshot class or restic repo"
+    fi
+  done
+  wait
+}
+
+# -----------------------------------------------------------------------------
+# Command: backup
+# -----------------------------------------------------------------------------
+do_backup() {
+  need kubectl; need jq
+  [[ -n $LABEL ]] && LABEL_ARG=(-l "$LABEL") || LABEL_ARG=()
+
+  local ts name tmpdir base tarfile
+  ts=$(date +%Y%m%d-%H%M%S)
+  name=${BACKUP_NAME:-${BACKUP_PREFIX}-${NS}-${ts}}
+  tmpdir=$(mktemp -d)
+  base="$tmpdir/$name"
+  tarfile="$name.tgz"
+
+  mkdir -p "$base"/{manifests,helm,rbac}
+
+  info "Exporting manifests from namespace $NS"
+  mapfile -t kinds < <(kubectl api-resources --namespaced --verbs=list -o name | grep -v '^events$')
+  for k in "${kinds[@]}"; do
+    par kubectl get "$k" "${LABEL_ARG[@]}" -n "$NS" -o json | clean_json > "$base/manifests/$k.json"
+  done
+  wait
+
+  if helm ls -n "$NS" --quiet | grep -q .; then
+    info "Exporting Helm releases"
+    run helm ls -n "$NS" -o yaml > "$base/helm/releases.yaml"
+    for rel in $(helm ls -n "$NS" -q); do
+      par helm get all "$rel" -n "$NS" > "$base/helm/${rel}.yaml"
+    done
+    wait
+  fi
+
+  if ! $SKIP_CRD; then
+    info "Exporting CRDs"
+    run kubectl get crd -o yaml > "$base/crds.yaml"
+  fi
+
+  info "Exporting cluster‑scoped RBAC"
+  run kubectl get clusterrolebinding -o json \
+    | jq --arg ns "$NS" '.items[] | select(any(.subjects[]?; .namespace? == $ns))' \
+    > "$base/rbac/bindings.json"
+
+  $INCLUDE_PVC && backup_pvcs "$base"
+
+  info "Creating archive"
+  run tar czf "$tarfile" -C "$tmpdir" "$name"
+
+  if $ENCRYPT; then
+    need gpg
+    [[ -z ${GPG_PASSPHRASE:-} ]] && die "GPG_PASSPHRASE required for --encrypt"
+    run gpg --batch --yes --passphrase "$GPG_PASSPHRASE" -c "$tarfile"
+    run rm "$tarfile"
+    tarfile+=".gpg"
+  fi
+
+  run mkdir -p "$BACKUP_DEST"
+  case "$BACKUP_DEST" in
+    *:) need rclone; run rclone copy "$tarfile" "$BACKUP_DEST";;
+    *)  run mv "$tarfile" "$BACKUP_DEST/";;
+  esac
+
+  ok "Backup stored as $BACKUP_DEST/$(basename "$tarfile")"
+  rm -rf "$tmpdir"
+}
+
+# -----------------------------------------------------------------------------
+# Command: restore
+# -----------------------------------------------------------------------------
+do_restore() {
+  [[ -z $FILE ]] && die "--file is required for restore"
+  need kubectl
+  if [[ $FILE == *.gpg ]]; then
+    need gpg
+    [[ -z ${GPG_PASSPHRASE:-} ]] && die "GPG_PASSPHRASE needed to decrypt"
+    run gpg --batch --yes --passphrase "$GPG_PASSPHRASE" -d "$FILE" > "${FILE%.gpg}"
+    FILE="${FILE%.gpg}"
+  fi
+  [[ ! -f $FILE ]] && die "File $FILE not found"
+
+  local tmpdir root
+  tmpdir=$(mktemp -d)
+  run tar xzf "$FILE" -C "$tmpdir"
+  root=$(find "$tmpdir" -mindepth 1 -maxdepth 1 -type d | head -1)
+
+  info "Restoring to namespace $NS"
+  run kubectl create ns "$NS" 2>/dev/null || true
+  [[ -f $root/crds.yaml ]] && run kubectl apply -f "$root/crds.yaml"
+
+  find "$root/manifests" -type f | sort | while read -r f; do
+    run kubectl apply -n "$NS" -f "$f"
+  done
+
+  if [[ -d $root/rbac ]]; then
+    find "$root/rbac" -type f | while read -r f; do run kubectl apply -f "$f"; done
+  fi
+
+  if [[ -d $root/helm ]]; then
+    info "Restoring Helm releases (manifest based)"
+    for manifest in "$root/helm"/*.yaml; do
+      run kubectl apply -n "$NS" -f "$manifest"
+    done
+  fi
+
+  ok "Restore complete.  You may need to restore PVC data separately."
+  rm -rf "$tmpdir"
+}
+
+# -----------------------------------------------------------------------------
+# Command: list
+# -----------------------------------------------------------------------------
+list_archives() {
+  case "$BACKUP_DEST" in
+    *:) need rclone; run rclone ls "$BACKUP_DEST";;
+    *)  ls -lh "$BACKUP_DEST"/*.tgz* 2>/dev/null || true;;
+  esac
+}
+
+# -----------------------------------------------------------------------------
+# Command: prune
+# -----------------------------------------------------------------------------
+prune_archives() {
+  local cutoff
+  cutoff=$(date -d "$RETENTION_DAYS days ago" +%s)
+  info "Removing archives older than $RETENTION_DAYS days"
+  case "$BACKUP_DEST" in
+    *:)
+      need rclone
+      mapfile -t files < <(rclone ls "$BACKUP_DEST" | awk '{print $2}')
+      for f in "${files[@]}"; do
+        if [[ $f =~ ([0-9]{8}-[0-9]{6}) ]]; then
+          [[ $(date -d "${BASH_REMATCH[1]}" +%s) -lt $cutoff ]] && run rclone delete "$BACKUP_DEST/$f"
+        fi
+      done
+      ;;
+    *)
+      for f in "$BACKUP_DEST"/*.tgz*; do [ -e "$f" ] || continue; if [[ $f =~ ([0-9]{8}-[0-9]{6}) ]]; then [[ $(date -d "${BASH_REMATCH[1]}" +%s) -lt $cutoff ]] && run rm "$f"; fi; done
+      ;;
+  esac
+  ok "Prune complete"
+}
+
+# -----------------------------------------------------------------------------
+# Dispatcher
+# -----------------------------------------------------------------------------
+case "$CMD" in
+  backup)  do_backup ;;
+  restore) do_restore ;;
+  list)    list_archives ;;
+  prune)   prune_archives ;;
+  *)       die "Unknown command '$CMD' (see --help)";;
+esac
