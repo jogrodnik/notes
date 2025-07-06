@@ -1,0 +1,205 @@
+#!/usr/bin/env bash
+# -----------------------------------------------------------------------------
+# ar-migrate-docker.sh  ·  v1.0.0   (2025-07-06)
+# -----------------------------------------------------------------------------
+# Copy every Docker/OCI image from one Google Artifact Registry project
+# (or repository subtree) to another **without installing gcrane or skopeo** —
+# it uses only `gcloud` + `docker`.
+#
+# Features
+#   • Parallel pull-tag-push pipeline (configurable concurrency)
+#   • Regex filters for repositories/images and tags
+#   • Structured CSV audit log (timestamp, repo, image, tag, digest, status)
+#   • Dry-run and verbose modes
+#   • Clean, colourised logging & graceful Ctrl-C handling
+#
+# Prerequisites
+#   • gcloud CLI ≥ 467 with `artifactregistry.googleapis.com` enabled in both
+#     projects and `gcloud auth configure-docker` already run
+#   • docker CLI logged-in identity has:
+#        – Artifact Registry *Reader* on the source project
+#        – Artifact Registry *Writer* on the destination project
+#   • Bash ≥ 4
+# -----------------------------------------------------------------------------
+# MIT License – use at your own risk.
+# -----------------------------------------------------------------------------
+
+set -Eeuo pipefail
+shopt -s lastpipe
+
+# -----------------------------------------------------------------------------
+# Defaults (override via env or CLI)
+# -----------------------------------------------------------------------------
+CONCURRENCY="${CONCURRENCY:-4}"
+REPO_FILTER="${REPO_FILTER:-.*}"   # regex on repository and sub-path
+TAG_FILTER="${TAG_FILTER:-.*}"     # regex on tag names
+LOG_DIR="${LOG_DIR:-./logs}"
+DRY_RUN=false
+VERBOSE=false
+USE_COLOR="${COLOR:-true}"
+
+# -----------------------------------------------------------------------------
+# Colour helpers (auto-disable on non-TTY)
+# -----------------------------------------------------------------------------
+if $USE_COLOR && test -t 2; then
+  RED=$'\e[31m'; YELLOW=$'\e[33m'; GREEN=$'\e[32m'; BLUE=$'\e[34m'; RESET=$'\e[0m'
+else
+  RED=""; YELLOW=""; GREEN=""; BLUE=""; RESET=""
+fi
+
+_ts()  { date +%FT%T%z; }
+log()  { printf "%s %b%s%b\n" "$(_ts)" "$2" "$1" "$RESET" >&2; }
+info() { log "$1" "$BLUE"; }
+warn() { log "$1" "$YELLOW"; }
+error(){ log "$1" "$RED"; }
+ok()   { log "$1" "$GREEN"; }
+die()  { error "$1"; exit 1; }
+need() { command -v "$1" >/dev/null || die "Binary '$1' is required"; }
+
+# run CMD … – honour global DRY_RUN
+run()  { $DRY_RUN && { printf "(dry-run) %q " "$@"; echo; } || "$@"; }
+
+# par CMD … – launch in background while respecting CONCURRENCY limit
+par() {
+  local lim=$CONCURRENCY
+  while (( $(jobs -pr | wc -l) >= lim )); do sleep 0.2; done
+  "$@" &
+}
+
+trap 'warn "Interrupt → cancelling remaining jobs"; jobs -pr | xargs -r kill 2>/dev/null' INT TERM
+
+# -----------------------------------------------------------------------------
+# CLI parsing
+# -----------------------------------------------------------------------------
+show_help() {
+  cat <<EOF
+Usage: $0 [options] SOURCE_PROJECT DEST_PROJECT
+
+Options
+  -c, --concurrency N   max parallel pull/tag/push jobs  (default: $CONCURRENCY)
+  -r, --repo-filter RE  regex to match repo+image paths  (default: "$REPO_FILTER")
+  -t, --tag-filter  RE  regex to match tags              (default: "$TAG_FILTER")
+  -l, --log-dir DIR     directory for CSV logs           (default: $LOG_DIR)
+      --dry-run         show what would be done, do nothing
+  -v, --verbose         enable shell tracing
+      --help            show this help
+EOF
+}
+
+OPTS=$(getopt -o c:r:t:l:v -l concurrency:,repo-filter:,tag-filter:,log-dir:,dry-run,verbose,help -n "ar-migrate-docker" -- "$@") || {
+  show_help; exit 1; }
+eval set -- "$OPTS"
+
+while true; do
+  case "$1" in
+    -c|--concurrency) CONCURRENCY="$2"; shift 2;;
+    -r|--repo-filter) REPO_FILTER="$2"; shift 2;;
+    -t|--tag-filter)  TAG_FILTER="$2"; shift 2;;
+    -l|--log-dir)     LOG_DIR="$2"; shift 2;;
+    --dry-run)        DRY_RUN=true; shift;;
+    -v|--verbose)     VERBOSE=true; shift;;
+    --help)           show_help; exit 0;;
+    --) shift; break;;
+    *) die "Unknown flag $1";;
+  esac
+done
+
+[[ $# -ne 2 ]] && { show_help; exit 1; }
+SRC_PROJ="$1"; DST_PROJ="$2"
+
+$VERBOSE && set -x
+
+# -----------------------------------------------------------------------------
+# Setup: verify tools & log file
+# -----------------------------------------------------------------------------
+need gcloud; need docker
+mkdir -p "$LOG_DIR"
+LOGFILE="$LOG_DIR/migration_$(date +%Y%m%d_%H%M%S).csv"
+echo "timestamp,repo,image,tag,digest,status" > "$LOGFILE"
+exec 9>>"$LOGFILE"   # FD 9 for flock-protected writes
+
+csv() { flock -x 9; echo "$*" >&9; flock -u 9; }
+
+# -----------------------------------------------------------------------------
+# Migration helpers
+# -----------------------------------------------------------------------------
+pull_tag_push() {
+  local src_ref=$1 dst_ref=$2 repo=$3 img=$4 tag=$5
+  local digest status
+
+  if ! run docker pull "$src_ref" >/dev/null 2>&1; then
+    status=pull_failed
+    csv "$(_ts),$repo,$img,$tag,,$status"
+    return
+  fi
+
+  digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$src_ref" | cut -d'@' -f2)
+  run docker tag  "$src_ref" "$dst_ref"
+  if ! run docker push "$dst_ref" >/dev/null 2>&1; then
+    status=push_failed
+  else
+    status=success
+  fi
+  csv "$(_ts),$repo,$img,$tag,$digest,$status"
+  run docker image rm "$src_ref" "$dst_ref" >/dev/null 2>&1 || true
+}
+
+# -----------------------------------------------------------------------------
+# Main logic
+# -----------------------------------------------------------------------------
+info "Starting migration  src=$SRC_PROJ → dst=$DST_PROJ"
+info "Concurrency=$CONCURRENCY  repo-filter='$REPO_FILTER'  tag-filter='$TAG_FILTER'"
+
+# 1) discover Docker repos in source
+mapfile -t REPOS < <(
+  gcloud artifacts repositories list \
+    --project="$SRC_PROJ" --filter="format=DOCKER" \
+    --format="value(location,name)"
+)
+
+for entry in "${REPOS[@]}"; do
+  region="${entry%% *}"; repo_name="${entry##* }"
+  src_host="${region}-docker.pkg.dev"
+  src_repo_path="${src_host}/${SRC_PROJ}/${repo_name}"
+  dst_repo_path="${src_host}/${DST_PROJ}/${repo_name}"
+
+  # honour repo filter at top-level
+  [[ "${repo_name}" =~ $REPO_FILTER ]] || { warn "Skip repo $repo_name (filter)"; continue; }
+
+  # ensure destination repository exists
+  if ! gcloud artifacts repositories describe "$repo_name" \
+        --location="$region" --project="$DST_PROJ" &>/dev/null; then
+    info "Create repo $repo_name in $DST_PROJ"
+    run gcloud artifacts repositories create "$repo_name" \
+        --location="$region" --project="$DST_PROJ" \
+        --repository-format=DOCKER \
+        --description="Migrated from $SRC_PROJ"
+  fi
+
+  # list images inside repo
+  mapfile -t images < <(
+    gcloud artifacts docker images list "$src_repo_path" \
+      --project="$SRC_PROJ" --format="value(image)"
+  )
+
+  for img in "${images[@]}"; do
+    rel="${img#${src_repo_path}/}"
+    [[ "$rel" =~ $REPO_FILTER ]] || continue
+
+    # list tags
+    mapfile -t tags < <(
+      gcloud artifacts docker tags list "$img" \
+        --project="$SRC_PROJ" --format="value(tag)" |
+      grep -E "$TAG_FILTER" || true
+    )
+
+    for tag in "${tags[@]}"; do
+      src_ref="${img}:${tag}"
+      dst_ref="${src_ref/${SRC_PROJ}/${DST_PROJ}}"
+      par pull_tag_push "$src_ref" "$dst_ref" "$repo_name" "$rel" "$tag"
+    done
+  done
+done
+
+wait
+ok "Migration complete – full log: $LOGFILE"
